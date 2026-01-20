@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>高級莫蘭迪健康筆記 v21 - Final</title>
+    <title>高級莫蘭迪健康筆記 v22 - Final</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -15,8 +15,9 @@
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: flex-end; }
         .modal-overlay.active { display: flex; }
         .modal-content { background: #fff; width: 100%; max-width: 450px; border-radius: 30px 30px 0 0; height: 90vh; display: flex; flex-direction: column; }
-        .tag { cursor: pointer; background: #f1f5f9; padding: 6px 12px; border-radius: 8px; font-size: 11px; margin: 2px; border: 1px solid #e2e8f0; color: #475569; }
+        .tag { cursor: pointer; background: #f1f5f9; padding: 6px 10px; border-radius: 6px; font-size: 10px; margin: 2px; border: 1px solid #e2e8f0; }
         .dot { width: 5px; height: 5px; border-radius: 50%; background: #d9c8a7; position: absolute; top: 8px; right: 8px; }
+        .btn-plus { background: #8fa3ad; color: white; width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -26,7 +27,7 @@
             <div class="flex justify-between items-start mb-6">
                 <div onclick="showTrend('main')">
                     <h1 class="text-xl tracking-widest opacity-90 font-medium">HEALTH LOG</h1>
-                    <p id="topDate" class="text-[10px] opacity-70 mt-1 uppercase"></p>
+                    <p id="topDate" class="text-[10px] opacity-70 mt-1"></p>
                 </div>
                 <div class="text-right" onclick="showTrend('main')">
                     <p class="text-[10px] opacity-70 mb-1">目前體重</p>
@@ -59,56 +60,57 @@
     <div id="recordModal" class="modal-overlay" onclick="closeModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="p-6 border-b flex justify-between items-center bg-white sticky top-0 z-50">
-                <h3 id="modalDateTitle" class="font-bold text-slate-600">數據編輯</h3>
+                <h3 id="modalDateTitle" class="font-bold text-slate-600">編輯紀錄</h3>
                 <button onclick="closeModal()" class="text-slate-300 text-3xl px-4">✕</button>
             </div>
             
             <div class="flex-1 overflow-y-auto p-6 space-y-10">
                 <div class="space-y-3">
-                    <label class="text-sm font-bold text-slate-500">🍕 飲食 (打關鍵字如「麵包」)</label>
+                    <label class="text-sm font-bold text-slate-500">🍕 飲食紀錄</label>
                     <div class="flex gap-1">
-                        <input type="text" id="fIn" oninput="debounceFood(this.value)" placeholder="食物名稱" class="flex-1 p-3 bg-slate-50 rounded-xl text-sm border-none shadow-inner">
+                        <input type="text" id="fIn" oninput="debounceFood(this.value)" placeholder="輸入飯、麵、麵包..." class="flex-1 p-3 bg-slate-50 rounded-xl text-sm border-none shadow-inner">
                         <input type="number" id="cIn" placeholder="kcal" class="w-20 p-3 bg-slate-50 rounded-xl text-sm border-none shadow-inner">
                         <button onclick="addF()" class="bg-slate-500 text-white px-4 rounded-xl text-xs font-bold">加</button>
                     </div>
-                    <div id="estBox" class="flex flex-wrap gap-1"></div>
+                    <div id="estBox" class="flex flex-wrap gap-1 min-h-[20px]"></div>
                     <div id="fList" class="space-y-2 mt-2"></div>
                 </div>
 
                 <div class="space-y-4">
-                    <label class="text-sm font-bold text-slate-500">🏃 今日運動總結</label>
-                    <div id="exSummary" class="p-4 bg-slate-50 rounded-2xl text-xs text-slate-500 min-h-[50px] leading-relaxed">尚無運動紀錄</div>
-                    
-                    <input type="text" id="exQ" oninput="debounceEx()" placeholder="搜尋動作或部位..." class="w-full p-4 bg-slate-50 rounded-xl text-sm border-none shadow-inner">
+                    <label class="text-sm font-bold text-slate-500">🏃 消耗紀錄 (點擊 + 增加組數)</label>
+                    <div id="exSummary" class="p-4 bg-slate-50 rounded-2xl text-[11px] text-blue-500 min-h-[40px] font-bold border-l-4 border-blue-200">今日還沒運動喔</div>
+                    <input type="text" id="exQ" oninput="debounceEx()" placeholder="搜尋動作..." class="w-full p-4 bg-slate-50 rounded-xl text-sm border-none shadow-inner">
                     <div id="exList" class="space-y-3 mt-2"></div>
                 </div>
 
-                <div class="grid grid-cols-1 gap-6">
+                <div class="grid grid-cols-1 gap-4">
                     <div class="p-4 bg-blue-50/30 rounded-2xl">
-                        <label class="text-[10px] font-bold text-blue-400 uppercase">Drink Water (ml)</label>
-                        <input type="number" id="waterIn" oninput="updateWaterBonus()" class="w-full bg-transparent text-2xl font-bold text-blue-500 border-none p-0 outline-none" placeholder="0">
+                        <label class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Water Intake (ml)</label>
+                        <input type="number" id="waterIn" oninput="updateWaterBonus()" class="w-full bg-transparent text-2xl font-bold text-blue-500 border-none p-0" placeholder="0">
                         <p class="text-[10px] text-blue-300 mt-1">代謝紅利: +<span id="waterBonus">0</span> kcal</p>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div class="p-4 bg-slate-50 rounded-2xl">
                             <input type="text" id="w1L" class="w-full bg-transparent text-[10px] text-slate-400 border-none p-0 font-bold" placeholder="早上空腹">
-                            <input type="number" step="0.1" id="w1" class="w-full bg-transparent font-bold text-xl text-slate-600 border-none p-0 outline-none" placeholder="0.0">
+                            <input type="number" step="0.1" id="w1" class="w-full bg-transparent font-bold text-xl text-slate-600 border-none p-0" placeholder="0.0">
                         </div>
                         <div class="p-4 bg-slate-50 rounded-2xl">
                             <input type="text" id="w2L" class="w-full bg-transparent text-[10px] text-slate-400 border-none p-0 font-bold" placeholder="睡前紀錄">
-                            <input type="number" step="0.1" id="w2" class="w-full bg-transparent font-bold text-xl text-slate-600 border-none p-0 outline-none" placeholder="0.0">
+                            <input type="number" step="0.1" id="w2" class="w-full bg-transparent font-bold text-xl text-slate-600 border-none p-0" placeholder="0.0">
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="p-6 border-t bg-white"><button onclick="saveAll()" class="w-full bg-slate-600 text-white py-5 rounded-2xl font-bold">確認儲存數據</button></div>
+            <div class="p-6 border-t bg-white"><button onclick="saveAll()" class="w-full bg-slate-600 text-white py-5 rounded-2xl font-bold shadow-lg">確認儲存</button></div>
         </div>
     </div>
 
     <script>
         let currY, currM, activeD = "", foods = [], exCals = {}, timer, chartA, chartB;
         const foodDict = { 
-            "雞蛋":75, "地瓜":150, "雞胸肉":165, "黑咖啡":5, "拿鐵":150, "吐司":150, "波羅麵包":350, "紅豆麵包":300, "牛角可頌":250, "蛋塔":220, "甜甜圈":280, "起司蛋糕":300, "巧克力蛋糕":350, "曲奇餅乾":50, "貝果":280, "奶酥麵包":400, "三明治":350, "凱薩雞肉捲":820, "水餃":50, "燕麥":100, "白飯":200, "蛋餅":300, "雞排":600
+            "白飯":200, "糙米飯":280, "牛肉麵":650, "陽春麵":350, "義大利麵":500, "炒飯":700, "涼麵":450, "烏龍麵":300,
+            "吐司":150, "波羅麵包":350, "紅豆麵包":300, "可頌":250, "蛋塔":220, "貝果":280, "起司蛋糕":300, "巧克力蛋糕":350,
+            "雞蛋":75, "地瓜":150, "雞胸肉":165, "水餃":50, "蛋餅":300, "雞排":600, "黑咖啡":5, "拿鐵":150
         };
         const baseExData = [
             "啞鈴負重深蹲.臀腿.0.1", "啞鈴夾胸.胸.0.1", "啞鈴划船.背.0.1", "左右側抬腿.腿.0.08",
@@ -136,29 +138,50 @@
             const l = document.getElementById('exList');
             l.innerHTML = baseExData.filter(ex => ex.toLowerCase().includes(q)).map(ex => {
                 const [n, p, rate] = ex.split('.');
-                const saved = exCals[n] || { reps: '', sets: '' };
+                const saved = exCals[n] || { reps: '', sets: 0, cal: 0 };
                 const isTime = parseFloat(rate) >= 1; 
                 return `<div class="p-4 bg-slate-50 rounded-xl flex justify-between items-center text-xs">
-                    <div class="flex-1"><b>${n}</b><p class="text-[9px] text-slate-400 mt-1">${p}</p></div>
-                    <div class="flex items-center gap-1">
-                        <input type="number" value="${saved.reps}" oninput="calcEx('${n}','${p}',this.value,null,${rate})" class="w-12 p-2 text-center rounded bg-white border-none shadow-sm" placeholder="${isTime?'分':'下'}">
-                        <input type="number" value="${saved.sets}" oninput="calcEx('${n}','${p}',null,this.value,${rate})" class="w-12 p-2 text-center rounded bg-white border-none shadow-sm" placeholder="組">
+                    <div class="flex-1">
+                        <b class="text-slate-600">${n}</b>
+                        <p class="text-[9px] text-blue-400 font-bold mt-1">這項消耗: ${saved.cal} kcal</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="number" id="reps-${n}" value="${saved.reps}" oninput="manualEx('${n}',${rate})" class="w-14 p-2 text-center rounded bg-white border-none shadow-sm" placeholder="${isTime?'分':'下'}">
+                        <div class="flex items-center bg-white rounded-lg shadow-sm px-1">
+                            <span class="px-2 font-bold text-slate-400">${saved.sets}</span>
+                            <button onclick="plusSet('${n}',${rate})" class="btn-plus">＋</button>
+                        </div>
                     </div>
                 </div>`;
             }).join('');
         }
 
-        function calcEx(n, p, r, s, rate) {
-            if(!exCals[n]) exCals[n] = { reps: 0, sets: 0, cal: 0, part: p };
-            if(r !== null) exCals[n].reps = parseInt(r) || 0;
-            if(s !== null) exCals[n].sets = parseInt(s) || 1;
-            exCals[n].cal = rate < 1 ? Math.round(exCals[n].reps * exCals[n].sets * rate) : Math.round(exCals[n].reps * rate * exCals[n].sets);
+        function manualEx(n, rate) {
+            const reps = parseInt(document.getElementById(`reps-${n}`).value) || 0;
+            if(!exCals[n]) exCals[n] = { reps: 0, sets: 0, cal: 0 };
+            exCals[n].reps = reps;
+            if(exCals[n].sets === 0) exCals[n].sets = 1;
+            updateExCal(n, rate);
+        }
+
+        function plusSet(n, rate) {
+            if(!exCals[n]) exCals[n] = { reps: 0, sets: 0, cal: 0 };
+            exCals[n].sets += 1;
+            const repsVal = parseInt(document.getElementById(`reps-${n}`).value) || 0;
+            exCals[n].reps = repsVal;
+            updateExCal(n, rate);
+            filterEx(); // 重新渲染列表以更新數字
+        }
+
+        function updateExCal(n, rate) {
+            const isTime = rate >= 1;
+            exCals[n].cal = isTime ? Math.round(exCals[n].reps * rate * exCals[n].sets) : Math.round(exCals[n].reps * exCals[n].sets * rate);
             updateExSummary();
         }
 
         function updateExSummary() {
-            const summary = Object.entries(exCals).filter(([_, v]) => v.cal > 0).map(([k, v]) => `• ${k}: ${v.cal}kcal`).join('  ');
-            document.getElementById('exSummary').innerText = summary || "尚無運動紀錄";
+            const summary = Object.entries(exCals).filter(([_, v]) => v.cal > 0).map(([k, v]) => `${k}(${v.cal}k)`).join(' | ');
+            document.getElementById('exSummary').innerText = summary || "今日還沒運動喔";
         }
 
         function debounceFood(v) { clearTimeout(timer); timer = setTimeout(() => {
@@ -247,7 +270,7 @@
                 chartA = new Chart(ctxA, { type: 'line', data: { labels, datasets: [{ label: '體重 (kg)', data: wData, borderColor: '#8fa3ad', tension: 0.3, spanGaps: true }] } });
                 chartB = new Chart(ctxB, { type: 'bar', data: { labels, datasets: [{ label: '攝取 (kcal)', data: cData, backgroundColor: '#d1d5db' }] } });
             } else {
-                document.getElementById('trendTitle').innerText = "運動(代謝)消耗趨勢";
+                document.getElementById('trendTitle').innerText = "運動消耗趨勢";
                 chartA = new Chart(ctxA, { type: 'line', data: { labels, datasets: [{ label: '消耗 (kcal)', data: exData, borderColor: '#d9c8a7', fill: true, tension: 0.3, spanGaps: true }] } });
                 chartB = new Chart(ctxB, { type: 'bar', data: { labels, datasets: [{ label: '每日代謝量', data: exData, backgroundColor: '#cbd5e1' }] } });
             }
