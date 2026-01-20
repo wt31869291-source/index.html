@@ -3,59 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>粉嫩健康管家 v4</title>
+    <title>優雅管家 v5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { --soft-pink: #fffbfc; --accent-red: #ff4d6d; --date-text: #5a4a4a; }
-        body { background-color: var(--soft-pink); font-family: -apple-system, "Microsoft JhengHei", sans-serif; overflow-x: hidden; color: #4a4a4a; }
-        body.modal-open { overflow: hidden; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-        .day-cell { min-height: 85px; background: white; border-radius: 18px; border: 1px solid #ffeef0; position: relative; transition: 0.2s; }
-        .today-border { border: 2.5px solid var(--accent-red) !important; background: #fff5f6; }
-        .date-num { color: var(--date-text); font-weight: 800; font-size: 13px; }
-        .period-dot { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: #ff8fa3; border-radius: 50%; box-shadow: 0 0 4px #ffb6c1; }
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 50; padding: 15px; overflow-y: auto; align-items: flex-start; backdrop-filter: blur(4px); }
+        :root { --soft-bg: #fffbfb; --accent-red: #ff4d6d; --date-text: #5a4a4a; --exercise-yellow: #fcd34d; }
+        body { background-color: var(--soft-bg); font-family: -apple-system, sans-serif; overflow-x: hidden; }
+        /* 徹底鎖定背景 */
+        body.modal-open { position: fixed; width: 100%; height: 100%; overflow: hidden; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+        .day-cell { min-height: 90px; background: white; border-radius: 20px; border: 1px solid #fceef0; position: relative; transition: 0.3s; }
+        .today-border { border: 2px solid var(--accent-red) !important; background: #fff5f6; }
+        .period-dot { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; background: #ff8fa3; border-radius: 50%; }
+        .exercise-dot { position: absolute; top: 6px; right: 16px; width: 7px; height: 7px; background: var(--exercise-yellow); border-radius: 50%; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(80, 50, 50, 0.4); z-index: 100; backdrop-filter: blur(5px); justify-content: center; align-items: flex-end; }
         .modal-overlay.active { display: flex; }
-        .modal-content { background: white; width: 100%; max-width: 420px; border-radius: 35px; margin: auto; overflow: hidden; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1); }
-        .estimate-tag { cursor: pointer; background: #fff0f3; color: #ff4d6d; padding: 5px 12px; border-radius: 15px; font-size: 12px; margin: 4px; display: inline-block; border: 1px solid #ffccd5; transition: 0.2s; }
-        .estimate-tag:active { background: #ffccd5; }
-        input { border: 1px solid #f0f0f0 !important; }
-        input:focus { outline: none; border-color: #ffccd5 !important; background: #fffafb; }
+        .modal-content { background: #fff9f8; width: 100%; max-width: 450px; border-radius: 40px 40px 0 0; padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -10px 30px rgba(0,0,0,0.1); height: 85vh; display: flex; flex-direction: column; }
+        .estimate-tag { cursor: pointer; background: #fdf2f2; color: #cc7a7a; padding: 6px 14px; border-radius: 12px; font-size: 11px; margin: 4px; border: 1px solid #f5e1e1; }
+        .btn-milk-tea { background-color: #dcbfa6; color: white; }
     </style>
 </head>
-<body>
+<body class="text-gray-700">
 
-    <div class="max-w-md mx-auto min-h-screen bg-white shadow-inner">
-        <div class="p-8 bg-gradient-to-b from-[#ffeef2] to-white rounded-b-[50px]">
-            <div class="flex justify-between items-center mb-6">
+    <div class="max-w-md mx-auto min-h-screen bg-white">
+        <div class="p-8 bg-gradient-to-b from-[#fdf0f0] to-white rounded-b-[60px]">
+            <div class="flex justify-between items-start mb-6">
                 <div>
-                    <h1 class="text-2xl font-black text-[#ff4d6d] tracking-tight">🌸 My Health Log</h1>
-                    <p id="topDate" class="text-[11px] text-pink-400 font-bold tracking-widest uppercase"></p>
+                    <h1 class="text-2xl font-black text-[#8b5e5e] tracking-tight">Health Diary</h1>
+                    <p id="topDate" class="text-[10px] text-pink-300 font-bold uppercase mt-1"></p>
                 </div>
-                <div class="bg-white px-5 py-3 rounded-[25px] text-center shadow-sm border border-pink-50">
-                    <p class="text-[10px] text-pink-400 font-black mb-1">CURRENT</p>
-                    <p id="topCurrentWeight" class="text-2xl font-black text-[#5a4a4a]">--</p>
+                <div class="text-right">
+                    <p class="text-[10px] text-pink-300 font-black mb-1">CURRENT WEIGHT</p>
+                    <p id="topCurrentWeight" class="text-3xl font-black text-[#5a4a4a]">--</p>
                 </div>
             </div>
-            
-            <div class="grid grid-cols-2 gap-4 text-center">
-                <div class="bg-white/80 p-4 rounded-[25px] border border-pink-50 shadow-sm">
-                    <p class="text-[10px] text-pink-400 font-bold mb-1">剩餘熱量</p>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white/90 p-4 rounded-[25px] shadow-sm border border-pink-50">
+                    <p class="text-[10px] text-pink-400 font-bold">剩餘熱量</p>
                     <p id="topRemain" class="text-xl font-black text-orange-400">--</p>
                 </div>
-                <div class="bg-white/80 p-4 rounded-[25px] border border-pink-50 shadow-sm flex items-center justify-center">
-                    <p id="topAdvice" class="text-[11px] leading-snug text-gray-500 font-medium italic"></p>
+                <div class="bg-[#fdf9f6] p-4 rounded-[25px] flex items-center justify-center italic text-[10px] text-[#8b5e5e]">
+                    <span id="topAdvice">載入建議中...</span>
                 </div>
             </div>
         </div>
 
         <div class="p-5">
             <div class="flex justify-between items-center px-4 mb-6">
-                <button onclick="changeMonth(-1)" class="text-pink-200 hover:text-pink-400">◀</button>
-                <h2 id="monthTitle" class="font-black text-[#5a4a4a] text-lg tracking-tighter"></h2>
-                <button onclick="changeMonth(1)" class="text-pink-200 hover:text-pink-400">▶</button>
+                <button onclick="changeMonth(-1)" class="text-pink-200 text-xl">◀</button>
+                <h2 id="monthTitle" class="font-black text-[#5a4a4a] text-lg"></h2>
+                <button onclick="changeMonth(1)" class="text-pink-200 text-xl">▶</button>
             </div>
-            <div class="calendar-grid text-center text-[10px] text-pink-300 font-black mb-3 tracking-widest">
+            <div class="calendar-grid text-center text-[10px] text-pink-200 font-black mb-4">
                 <div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div>
             </div>
             <div id="calendarBody" class="calendar-grid"></div>
@@ -64,63 +62,65 @@
 
     <div id="recordModal" class="modal-overlay" onclick="handleOverlayClick(event)">
         <div class="modal-content animate-slide-up">
-            <div class="p-6 bg-[#ffeef2] flex justify-between items-center">
-                <h3 id="modalDateTitle" class="font-black text-[#ff4d6d] text-lg"></h3>
-                <button onclick="closeModal()" class="w-10 h-10 flex items-center justify-center bg-white rounded-full text-[#ff4d6d] shadow-sm font-bold">✕</button>
+            <div class="p-6 flex justify-between items-center">
+                <h3 id="modalDateTitle" class="font-black text-[#8b5e5e] text-xl"></h3>
+                <button onclick="closeModal()" class="w-10 h-10 bg-white rounded-full text-pink-300 shadow-sm font-bold">✕</button>
             </div>
             
-            <div class="p-6 space-y-8 overflow-y-auto" style="max-height: 70vh;">
+            <div class="flex-1 overflow-y-auto p-6 space-y-8">
                 <div class="space-y-4">
-                    <div class="flex justify-between items-end px-1">
-                        <label class="font-black text-[#5a4a4a] flex items-center gap-2">🍰 飲食與熱量</label>
-                        <span id="modalDayTotal" class="text-lg font-black text-orange-500">0 <small class="text-[10px]">kcal</small></span>
+                    <div class="flex justify-between items-end">
+                        <label class="font-black text-[#8b5e5e]">🍪 飲食與熱量</label>
+                        <span id="modalDayTotal" class="text-xl font-black text-orange-400">0</span>
                     </div>
                     <div class="flex gap-2">
-                        <input type="text" id="foodIn" oninput="showEstimate(this.value)" placeholder="輸入食物..." class="flex-1 p-4 bg-gray-50 rounded-[20px] text-sm border-none">
-                        <input type="number" id="calIn" placeholder="kcal" class="w-24 p-4 bg-gray-50 rounded-[20px] text-sm border-none">
-                        <button onclick="saveFood()" id="foodBtn" class="bg-[#ff4d6d] text-white px-6 rounded-[20px] font-bold text-sm">加</button>
+                        <input type="text" id="foodIn" oninput="showEstimate(this.value)" placeholder="找找看熱量..." class="flex-1 p-4 bg-white rounded-2xl text-sm border-none shadow-sm">
+                        <input type="number" id="calIn" placeholder="kcal" class="w-24 p-4 bg-white rounded-2xl text-sm border-none shadow-sm">
+                        <button onclick="saveFood()" id="foodBtn" class="btn-milk-tea px-6 rounded-2xl font-bold">加</button>
                     </div>
-                    <div id="estimateBox" class="flex flex-wrap px-1"></div>
+                    <div id="estimateBox" class="flex flex-wrap"></div>
                     <div id="foodList" class="space-y-2"></div>
                 </div>
 
-                <div class="p-5 bg-[#fff9fa] rounded-[30px] border border-pink-50 shadow-inner">
+                <div class="p-5 bg-white rounded-[30px] shadow-sm border border-pink-50">
                     <div class="flex justify-between items-center mb-4">
-                        <label class="font-black text-[#5a4a4a]">⚖️ 體重監測</label>
-                        <span id="weightDiff" class="text-[10px] bg-white px-3 py-1 rounded-full text-pink-400 font-bold border border-pink-50">波動: --</span>
+                        <label class="font-black text-[#8b5e5e]">⚖️ 體重紀錄</label>
+                        <button onclick="toggleTimeEdit()" class="text-[10px] text-pink-300 underline">修改時間</button>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="space-y-2">
-                            <input type="time" id="t1" class="w-full text-[10px] text-center bg-transparent text-pink-300">
-                            <input type="number" step="0.1" id="w1" placeholder="紀錄 1" class="w-full p-3 rounded-[15px] text-center font-black text-lg text-gray-600">
+                        <div class="text-center">
+                            <span class="text-[9px] text-pink-200 font-bold block mb-1">起床空腹</span>
+                            <input type="time" id="t1" class="hidden w-full text-[10px] mb-1">
+                            <input type="number" step="0.1" id="w1" placeholder="kg" class="w-full p-3 bg-[#fdfaf8] rounded-2xl text-center font-black text-lg">
                         </div>
-                        <div class="space-y-2">
-                            <input type="time" id="t2" class="w-full text-[10px] text-center bg-transparent text-pink-300">
-                            <input type="number" step="0.1" id="w2" placeholder="紀錄 2" class="w-full p-3 rounded-[15px] text-center font-black text-lg text-gray-600">
+                        <div class="text-center">
+                            <span class="text-[9px] text-pink-200 font-bold block mb-1">睡前紀錄</span>
+                            <input type="time" id="t2" class="hidden w-full text-[10px] mb-1">
+                            <input type="number" step="0.1" id="w2" placeholder="kg" class="w-full p-3 bg-[#fdfaf8] rounded-2xl text-center font-black text-lg">
                         </div>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="p-5 bg-blue-50/50 rounded-[30px] border border-blue-50">
-                        <label class="block text-xs font-black text-blue-400 mb-3">💧 飲水 (ml)</label>
-                        <input type="number" id="waterIn" class="w-full p-3 rounded-[15px] border-none text-center font-black text-blue-600">
+                    <div class="p-5 bg-[#fdf2f2] rounded-3xl flex justify-between items-center">
+                        <span class="text-xs font-black text-red-400">🎈 生理期</span>
+                        <input type="checkbox" id="pCheck" class="w-6 h-6 accent-red-400">
                     </div>
-                    <div class="p-5 bg-red-50/50 rounded-[30px] border border-red-50 flex flex-col items-center">
-                        <label class="text-xs font-black text-red-400 mb-3">🎈 生理期</label>
-                        <input type="checkbox" id="pCheck" class="w-8 h-8 accent-red-400">
+                    <div class="p-5 bg-blue-50 rounded-3xl flex justify-between items-center">
+                        <span class="text-xs font-black text-blue-400">💧 飲水</span>
+                        <input type="number" id="waterIn" placeholder="ml" class="w-16 bg-transparent text-center font-bold">
                     </div>
                 </div>
 
                 <div class="space-y-4">
-                    <label class="font-black text-[#5a4a4a] px-1">🏃 運動計畫</label>
-                    <input type="text" id="exSearch" oninput="filterEx()" placeholder="直接搜尋運動項目..." class="w-full p-4 bg-gray-50 rounded-[20px] text-sm border-none">
-                    <div id="exList" class="space-y-2 max-h-60 overflow-y-auto pr-2"></div>
+                    <label class="font-black text-[#8b5e5e]">🏃 運動紀錄 (輸入名稱即過濾)</label>
+                    <input type="text" id="exSearch" oninput="filterEx()" class="w-full p-4 bg-white rounded-2xl text-sm border-none shadow-sm">
+                    <div id="exList" class="space-y-2"></div>
                 </div>
             </div>
             
             <div class="p-6 bg-white border-t border-gray-50">
-                <button onclick="finalSave()" class="w-full bg-[#ff4d6d] text-white py-5 rounded-[25px] font-black shadow-lg shadow-pink-100 active:scale-[0.98] transition-all">儲存今日數據</button>
+                <button onclick="finalSave()" class="w-full btn-milk-tea py-5 rounded-[25px] font-black shadow-lg">儲存今日數據</button>
             </div>
         </div>
     </div>
@@ -128,10 +128,8 @@
     <script>
         let currentYear, currentMonth, activeDate = "", dailyFoods = [], editIndex = -1;
         
-        // 擴充字典
         const calDict = {
-            "排骨飯":850,"雞肉飯":450,"牛肉麵":650,"滷肉飯":500,"燙青菜":50,"珍奶":650,"雞排":750,"蛋餅":300,"三明治":350,"起司蛋三明治":420,"鮪魚三明治":380,"漢堡":450,"卡拉雞腿堡":650,"牛肉堡":550,"豬肉滿福堡":380,"乾麵":500,"火鍋":1000,"便當":800,"水餃":500,"地瓜":150,"雞胸肉":160,"香蕉":90,"拿鐵":150,
-            "巧克力蛋糕":450,"起司蛋糕":350,"波士頓派":300,"戚風蛋糕":250,"菠蘿麵包":400,"紅豆麵包":320,"奶油麵包":350,"可頌":350,"吐司":150,"厚片吐司":280,"貝果":280,"甜甜圈":300,"熱狗":250,"薯條":350,"雞塊":300,"義大利麵":600,"燉飯":700,"凱撒沙拉":350
+            "鍋貼":60,"水煎包":300,"肉圓":350,"燒餅油條":500,"飯糰":450,"蚵仔煎":500,"肉燥飯":450,"牛肉麵":650,"大麥克":530,"中薯":330,"麥克雞塊":200,"排骨便當":850,"雞腿便當":750,"排骨飯":850,"雞肉飯":450,"珍奶":650,"雞排":750,"蛋餅":300,"三明治":350,"起司蛋三明治":420,"漢堡":450,"卡拉雞腿堡":650,"巧克力蛋糕":450,"起司蛋糕":350,"菠蘿麵包":400,"紅豆麵包":320,"吐司":150,"厚片":280,"貝果":280,"拿鐵":150,"義大利麵":600,"凱撒沙拉":350,"紅豆餅":250,"雞蛋糕":200,"必勝客單片":300,"炒麵":500,"炒飯":750,"蚵仔麵線":400,"滷味小份":300
         };
 
         const exercises = ["啞鈴負重深蹲.腿臀","啞鈴夾胸.胸","啞鈴划船.背","左右側抬腿.腿","跪式前後俯臥撐.腹","俯臥後抬腿.臀","腳心開合.腿","跪姿左右抬腿.腰腹","跪姿後抬腿(直).下臀","跪姿彎曲抬腿.上臀","啞鈴w外推.手臂","臀橋.臀","啞鈴側平舉.肩","啞鈴硬拉.臀","彈力帶前後繞肩.肩背","彈力帶高位下拉.肩背","彈力帶左右側拉.手胸","左右腿分蹲.臀","腳尖交叉點地.腹","交替收腿.腹","屈膝捲腹.腹","直腿捲腹.腹","自行車捲腹.腹","剪刀腿.腹"];
@@ -148,8 +146,7 @@
             const body = document.getElementById('calendarBody');
             body.innerHTML = '';
             document.getElementById('monthTitle').innerText = `${currentYear}年 ${currentMonth + 1}月`;
-            document.getElementById('topDate').innerText = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-            
+            document.getElementById('topDate').innerText = new Date().toDateString();
             const firstDay = new Date(currentYear, currentMonth, 1).getDay();
             const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
             const periodStart = localStorage.getItem('period_start');
@@ -163,17 +160,18 @@
                 let classes = 'day-cell p-3 cursor-pointer active:scale-95';
                 if(dateStr === todayStr) classes += ' today-border';
                 
-                let pTag = '';
+                let dots = '';
                 if(periodStart) {
                     const diff = (new Date(dateStr) - new Date(periodStart)) / (1000*60*60*24);
-                    if(diff >= 0 && diff < 7) pTag = `<div class="period-dot"></div>`;
+                    if(diff >= 0 && diff < 7) dots += `<div class="period-dot"></div>`;
                 }
+                if(data && data.hasEx) dots += `<div class="exercise-dot"></div>`;
 
                 body.innerHTML += `<div class="${classes}" onclick="openModal('${dateStr}')">
-                    <span class="date-num">${d}</span>
-                    ${data && data.totalCal ? `<div class="text-[9px] text-orange-400 font-black mt-2 leading-none">${data.totalCal}</div>` : ''}
-                    ${data && data.w1 ? `<div class="text-[9px] text-pink-300 font-bold mt-1 leading-none">${data.w1}</div>` : ''}
-                    ${pTag}
+                    <span class="text-[#5a4a4a] font-black text-xs">${d}</span>
+                    ${data && data.totalCal ? `<div class="text-[9px] text-orange-400 font-black mt-2 leading-none">${data.totalCal}k</div>` : ''}
+                    ${data && data.w1 ? `<div class="text-[9px] text-pink-300 font-bold mt-1 leading-none">${data.w1}kg</div>` : ''}
+                    ${dots}
                 </div>`;
             }
         }
@@ -185,23 +183,29 @@
             document.getElementById('w1').value = data.w1 || '';
             document.getElementById('w2').value = data.w2 || '';
             document.getElementById('t1').value = data.t1 || '08:00';
-            document.getElementById('t2').value = data.t2 || '22:00';
+            document.getElementById('t2').value = data.t2 || '22:30';
             document.getElementById('waterIn').value = data.water || '';
             document.getElementById('pCheck').checked = (localStorage.getItem('period_start') === date);
             dailyFoods = data.foods || [];
             updateFoodUI();
-            calculateWeightDiff();
-            filterEx(); // 重置運動列表
+            filterEx(); 
             document.getElementById('recordModal').classList.add('active');
             document.body.classList.add('modal-open');
         }
+
+        function closeModal() {
+            document.getElementById('recordModal').classList.remove('active');
+            document.body.classList.remove('modal-open');
+            activeDate = "";
+        }
+
+        function handleOverlayClick(e) { if(e.target.id === 'recordModal') closeModal(); }
 
         function showEstimate(val) {
             const box = document.getElementById('estimateBox');
             box.innerHTML = '';
             if(!val) return;
-            const matches = Object.keys(calDict).filter(k => k.includes(val));
-            matches.slice(0, 5).forEach(m => {
+            Object.keys(calDict).filter(k => k.includes(val)).slice(0, 6).forEach(m => {
                 box.innerHTML += `<div class="estimate-tag" onclick="useEst('${m}', ${calDict[m]})">${m} ${calDict[m]}k</div>`;
             });
         }
@@ -229,50 +233,29 @@
             let total = 0;
             list.innerHTML = dailyFoods.map((f, i) => {
                 total += f.cal;
-                return `<div class="flex justify-between items-center bg-gray-50/50 p-4 rounded-2xl border border-gray-50">
-                    <span class="text-xs font-bold">${f.name} <b class="text-orange-500 ml-2">${f.cal}</b></span>
-                    <div class="flex gap-4">
-                        <button onclick="editF(${i})" class="text-blue-400 text-xs font-black">改</button>
-                        <button onclick="delF(${i})" class="text-pink-300 text-xs font-black">刪</button>
-                    </div>
+                return `<div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-pink-50 text-xs">
+                    <span class="font-bold text-[#8b5e5e]">${f.name} <b class="text-orange-400 ml-2">${f.cal}k</b></span>
+                    <button onclick="delF(${i})" class="text-pink-200 font-black">✕</button>
                 </div>`;
             }).join('');
             document.getElementById('modalDayTotal').innerText = total;
         }
 
-        function editF(i) {
-            editIndex = i;
-            document.getElementById('foodIn').value = dailyFoods[i].name;
-            document.getElementById('calIn').value = dailyFoods[i].cal;
-            document.getElementById('foodBtn').innerText = "確認";
-            document.getElementById('foodIn').focus();
-        }
-
         function delF(i) { dailyFoods.splice(i, 1); updateFoodUI(); }
 
-        function calculateWeightDiff() {
-            const w1 = parseFloat(document.getElementById('w1').value);
-            const w2 = parseFloat(document.getElementById('w2').value);
-            const diffEl = document.getElementById('weightDiff');
-            if(w1 && w2) {
-                const diff = (w2 - w1).toFixed(1);
-                diffEl.innerText = `今日波動: ${diff > 0 ? '+' : ''}${diff} kg`;
-            } else { diffEl.innerText = `波動: --`; }
+        function toggleTimeEdit() {
+            document.getElementById('t1').classList.toggle('hidden');
+            document.getElementById('t2').classList.toggle('hidden');
         }
-
-        document.getElementById('w1').oninput = calculateWeightDiff;
-        document.getElementById('w2').oninput = calculateWeightDiff;
 
         function filterEx() {
             const q = document.getElementById('exSearch').value.toLowerCase();
             const list = document.getElementById('exList');
-            const filtered = exercises.filter(ex => ex.toLowerCase().includes(q));
-            
-            list.innerHTML = filtered.map(ex => {
+            list.innerHTML = exercises.filter(ex => ex.toLowerCase().includes(q)).map(ex => {
                 const [n, p] = ex.split('.');
-                return `<div class="flex justify-between items-center p-4 bg-white border border-pink-50 rounded-[20px] shadow-sm">
-                    <div class="text-xs"><b class="text-gray-700">${n}</b><br><span class="text-pink-300 text-[9px] uppercase font-bold">${p}</span></div>
-                    <div class="flex gap-2 items-center text-xs"><input type="number" placeholder="下" class="w-12 p-2 bg-pink-50 rounded-lg text-center font-bold">x<input type="number" placeholder="組" class="w-12 p-2 bg-pink-50 rounded-lg text-center font-bold"></div>
+                return `<div class="flex justify-between items-center p-4 bg-white rounded-2xl border border-pink-50">
+                    <div class="text-[10px]"><b class="text-[#8b5e5e]">${n}</b><br><span class="text-pink-200 font-bold">${p}</span></div>
+                    <div class="flex gap-2 items-center"><input type="number" placeholder="組" class="w-10 p-1 bg-[#fdfaf8] rounded text-center text-xs"></div>
                 </div>`;
             }).join('');
         }
@@ -285,21 +268,14 @@
                 w2: document.getElementById('w2').value,
                 t1: document.getElementById('t1').value,
                 t2: document.getElementById('t2').value,
-                water: document.getElementById('waterIn').value
+                water: document.getElementById('waterIn').value,
+                hasEx: (document.getElementById('exSearch').value !== "" || dailyFoods.length > 0) // 簡單邏輯：有輸入內容就算運動
             };
             localStorage.setItem('health_' + activeDate, JSON.stringify(data));
             if(document.getElementById('pCheck').checked) localStorage.setItem('period_start', activeDate);
             else if(localStorage.getItem('period_start') === activeDate) localStorage.removeItem('period_start');
             closeModal(); renderCalendar(); updateTopUI();
         }
-
-        function closeModal() {
-            document.getElementById('recordModal').classList.remove('active');
-            document.body.classList.remove('modal-open');
-            activeDate = "";
-        }
-
-        function handleOverlayClick(e) { if(e.target.id === 'recordModal') closeModal(); }
 
         function updateTopUI() {
             const todayStr = new Date().toISOString().split('T')[0];
@@ -312,13 +288,8 @@
             }
             const remain = tdee - (data.totalCal || 0);
             document.getElementById('topRemain').innerText = remain + " kcal";
-            document.getElementById('topCurrentWeight').innerText = (data.w1 || "--") + " kg";
-            
-            const adEl = document.getElementById('topAdvice');
-            if(remain > 800) adEl.innerText = "🌟 預算超多！今天可以吃個小甜點獎勵自己唷。";
-            else if(remain > 400) adEl.innerText = "🥗 預算適中，晚餐吃清淡點就完美了！";
-            else if(remain > 0) adEl.innerText = "🍎 預算快到底了，下一餐建議只吃蔬菜蛋白質。";
-            else adEl.innerText = "⌛ 已達標，明天再接再厲，多喝點水吧！";
+            document.getElementById('topCurrentWeight').innerText = (data.w1 || "--") + "kg";
+            document.getElementById('topAdvice').innerText = remain > 0 ? "加油，今天還剩下點預算！" : "今天已經達標囉，早點休息。";
         }
 
         function changeMonth(s) {
