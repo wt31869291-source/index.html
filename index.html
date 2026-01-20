@@ -3,22 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>高級莫蘭迪健康筆記 v6</title>
+    <title>高級莫蘭迪健康筆記 v7</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --m-bg: #f4f6f7; --m-blue: #8fa3ad; --m-dark: #4a555c; }
-        body { background: var(--m-bg); font-family: sans-serif; color: var(--m-dark); }
+        body { background: var(--m-bg); font-family: sans-serif; color: var(--m-dark); -webkit-tap-highlight-color: transparent; }
         .lock-screen { overflow: hidden !important; height: 100vh !important; position: fixed; width: 100%; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
         .day-cell { min-height: 90px; background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; position: relative; }
         .today-mark { border: 2px solid var(--m-blue) !important; background: #fdfdfd; }
         .dot { width: 6px; height: 6px; border-radius: 50%; position: absolute; top: 8px; }
-        .p-dot { background: #d9a7a7; right: 8px; }
-        .e-dot { background: #d9c8a7; right: 18px; }
+        .e-dot { background: #d9c8a7; right: 8px; }
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(5px); z-index: 999; justify-content: center; align-items: flex-end; }
         .modal-overlay.active { display: flex; }
         .modal-content { background: #fff; width: 100%; max-width: 450px; border-radius: 24px 24px 0 0; height: 85vh; display: flex; flex-direction: column; }
         .tag { cursor: pointer; background: #f1f5f9; padding: 4px 10px; border-radius: 8px; font-size: 11px; margin: 2px; border: 1px solid #e2e8f0; }
+        input[type="number"] { -moz-appearance: textfield; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
 <body>
@@ -27,75 +28,81 @@
         <div class="p-8 text-white rounded-b-[40px] shadow-lg" style="background: #6a7c85;">
             <div class="flex justify-between items-end mb-6">
                 <div><h1 class="text-xl tracking-widest opacity-80">HEALTH LOG</h1><p id="topDate" class="text-xs"></p></div>
-                <div class="text-right"><p class="text-[10px] opacity-60">CURRENT</p><p id="topW" class="text-3xl font-light">--</p></div>
+                <div class="text-right"><p class="text-[10px] opacity-60">目前體重</p><p id="topW" class="text-3xl font-light">--</p></div>
             </div>
             <div class="grid grid-cols-2 gap-4 text-center">
-                <div class="bg-white/10 p-3 rounded-xl"><p class="text-[10px] opacity-70">剩餘預算</p><p id="topRem" class="text-lg font-bold">--</p></div>
-                <div class="bg-white/10 p-3 rounded-xl"><p class="text-[10px] opacity-70">運動消耗</p><p id="topExCal" class="text-lg font-bold">0</p></div>
+                <div class="bg-white/10 p-3 rounded-xl">
+                    <p class="text-[10px] opacity-70">剩餘預算</p>
+                    <p id="topRem" class="text-lg font-bold">--</p>
+                </div>
+                <div class="bg-white/10 p-3 rounded-xl">
+                    <p class="text-[10px] opacity-70">運動消耗</p>
+                    <p id="topExCal" class="text-lg font-bold">0</p>
+                </div>
             </div>
         </div>
 
         <div class="p-4">
             <div class="flex justify-between items-center mb-6 px-2">
-                <button onclick="changeMonth(-1)">〈</button>
-                <h2 id="monthTitle" class="font-medium tracking-widest"></h2>
-                <button onclick="changeMonth(1)">〉</button>
+                <button onclick="changeMonth(-1)" class="p-2">〈</button>
+                <h2 id="monthTitle" class="font-medium tracking-widest text-slate-600"></h2>
+                <button onclick="changeMonth(1)" class="p-2">〉</button>
             </div>
-            <div class="calendar-grid text-center text-[10px] text-slate-400 mb-2">
+            <div class="calendar-grid text-center text-[10px] text-slate-400 mb-2 font-bold">
                 <div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div>
             </div>
             <div id="calendarBody" class="calendar-grid"></div>
         </div>
     </div>
 
-    <div id="recordModal" class="modal-overlay" onclick="closeModal()">
+    <div id="recordModal" class="modal-overlay" onclick="handleOverlayClick(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <div class="p-6 border-b flex justify-between items-center">
-                <h3 id="modalDateTitle" class="font-medium">日期紀錄</h3>
-                <button onclick="closeModal()" class="text-slate-300 text-xl">✕</button>
+            <div class="p-6 border-b flex justify-between items-center bg-white rounded-t-3xl">
+                <h3 id="modalDateTitle" class="font-medium text-slate-600"></h3>
+                <button onclick="closeModal()" class="text-slate-300 text-2xl p-2">✕</button>
             </div>
             
             <div class="flex-1 overflow-y-auto p-6 space-y-8" id="modalScrollArea">
                 <div class="space-y-3">
-                    <div class="flex justify-between"><label class="text-sm font-bold">🍕 飲食 (含好市多/家常)</label><span id="foodSum" class="font-bold">0</span></div>
+                    <div class="flex justify-between items-center"><label class="text-sm font-bold text-slate-500">🍕 飲食紀錄</label><span id="foodSum" class="font-bold text-slate-600">0</span></div>
                     <div class="flex gap-2">
-                        <input type="text" id="fIn" oninput="debounceEst(this.value)" placeholder="輸入食物..." class="flex-1 p-3 bg-slate-50 rounded-xl text-sm border-none">
+                        <input type="text" id="fIn" oninput="debounceEst(this.value)" placeholder="輸入食物..." class="flex-1 p-3 bg-slate-50 rounded-xl text-sm border-none focus:ring-1 ring-slate-200">
                         <input type="number" id="cIn" placeholder="kcal" class="w-20 p-3 bg-slate-50 rounded-xl text-sm border-none">
-                        <button onclick="addF()" class="bg-slate-400 text-white px-4 rounded-xl text-sm">加</button>
+                        <button onclick="addF()" class="bg-slate-400 text-white px-5 rounded-xl text-sm font-bold active:scale-95 transition-transform">加</button>
                     </div>
                     <div id="estBox" class="flex flex-wrap"></div>
                     <div id="fList" class="space-y-2"></div>
                 </div>
 
                 <div class="space-y-3">
-                    <label class="text-sm font-bold">⚖️ 體重 (標籤可改)</label>
+                    <label class="text-sm font-bold text-slate-500">⚖️ 體重紀錄</label>
                     <div class="grid grid-cols-2 gap-3">
-                        <div class="p-3 bg-slate-50 rounded-xl">
-                            <input type="text" id="w1L" value="起床空腹" class="w-full bg-transparent text-[10px] text-slate-400 mb-1">
-                            <input type="number" step="0.1" id="w1" class="w-full bg-transparent text-xl font-bold text-center">
+                        <div class="p-4 bg-slate-50 rounded-2xl">
+                            <input type="text" id="w1L" class="w-full bg-transparent text-[10px] text-slate-400 mb-1 border-none p-0 focus:ring-0">
+                            <input type="number" step="0.1" id="w1" placeholder="0.0" class="w-full bg-transparent text-xl font-bold text-slate-600 border-none p-0 text-center focus:ring-0">
                         </div>
-                        <div class="p-3 bg-slate-50 rounded-xl">
-                            <input type="text" id="w2L" value="睡前紀錄" class="w-full bg-transparent text-[10px] text-slate-400 mb-1">
-                            <input type="number" step="0.1" id="w2" class="w-full bg-transparent text-xl font-bold text-center">
+                        <div class="p-4 bg-slate-50 rounded-2xl">
+                            <input type="text" id="w2L" class="w-full bg-transparent text-[10px] text-slate-400 mb-1 border-none p-0 focus:ring-0">
+                            <input type="number" step="0.1" id="w2" placeholder="0.0" class="w-full bg-transparent text-xl font-bold text-slate-600 border-none p-0 text-center focus:ring-0">
                         </div>
                     </div>
                 </div>
 
                 <div class="space-y-3">
-                    <div class="flex justify-between"><label class="text-sm font-bold">🏃 運動 (自動計算消耗)</label><span id="exSum" class="text-orange-400 font-bold">0 kcal</span></div>
+                    <div class="flex justify-between items-center"><label class="text-sm font-bold text-slate-500">🏃 運動項目</label><span id="exSum" class="text-slate-400 font-bold text-xs">0 kcal</span></div>
                     <input type="text" id="exQ" oninput="debounceEx()" placeholder="搜尋動作..." class="w-full p-3 bg-slate-50 rounded-xl text-sm border-none">
                     <div id="exList" class="space-y-2"></div>
                 </div>
             </div>
             
-            <div class="p-6"><button onclick="saveAll()" class="w-full bg-slate-500 text-white py-4 rounded-2xl font-bold">儲存數據</button></div>
+            <div class="p-6 bg-white border-t"><button onclick="saveAll()" class="w-full bg-slate-500 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-[0.98] transition-all">確認儲存數據</button></div>
         </div>
     </div>
 
     <script>
         let currY, currM, activeD = "", foods = [], exCals = {}, timer;
         const dict = {
-            "好市多瑪芬":650, "好市多雞肉卷":820, "排骨麵":650, "鍋燒雞絲麵":550, "家常炒青菜":150, "家常炒肉片":300, "家常煎魚":250, "家常滷肉":350,
+            "好市多瑪芬":650, "好市多雞肉卷":820, "排骨麵":650, "鍋燒雞絲麵":550, "排骨酥麵":650, "家常炒青菜":150, "家常炒肉片":300, "家常煎魚":250, "家常滷肉":350,
             "鍋貼":60, "大麥克":530, "珍奶":650, "雞排":750, "蛋餅":300, "三明治":350, "漢堡":450, "拿鐵":150, "牛肉麵":650, "火鍋":1000, "便當":800, "地瓜":150, "雞胸肉":160, "水餃":50
         };
         const exMap = { "腿": 0.1, "胸": 0.08, "背": 0.09, "腹": 0.05, "臀": 0.1, "臂": 0.05, "肩": 0.06 }; 
@@ -106,8 +113,8 @@
             renderCal(); updateTop();
         };
 
-        function debounceEst(v) { clearTimeout(timer); timer = setTimeout(() => showEst(v), 200); }
-        function debounceEx() { clearTimeout(timer); timer = setTimeout(() => filterEx(), 200); }
+        function debounceEst(v) { clearTimeout(timer); timer = setTimeout(() => showEst(v), 250); }
+        function debounceEx() { clearTimeout(timer); timer = setTimeout(() => filterEx(), 250); }
 
         function showEst(v) {
             const b = document.getElementById('estBox'); b.innerHTML = '';
@@ -117,17 +124,30 @@
             });
         }
 
-        function useEst(n, c) { document.getElementById('fIn').value = n; document.getElementById('cIn').value = c; document.getElementById('estBox').innerHTML = ''; }
+        function useEst(n, c) { 
+            document.getElementById('fIn').value = n; 
+            document.getElementById('cIn').value = c; 
+            document.getElementById('estBox').innerHTML = ''; 
+        }
 
         function addF() {
-            const n = document.getElementById('fIn').value || "未命名";
+            const n = document.getElementById('fIn').value || "食物";
             const c = parseInt(document.getElementById('cIn').value) || 0;
-            foods.push({n, c}); updateFoodUI();
+            foods.push({n, c});
+            document.getElementById('fIn').value = "";
+            document.getElementById('cIn').value = "";
+            updateFoodUI();
         }
 
         function updateFoodUI() {
             const l = document.getElementById('fList'); let t = 0;
-            l.innerHTML = foods.map((f, i) => { t += f.c; return `<div class="flex justify-between bg-slate-50 p-2 rounded-lg text-xs"><span>${f.n} ${f.c}k</span><button onclick="foods.splice(${i},1);updateFoodUI()">✕</button></div>`; }).join('');
+            l.innerHTML = foods.map((f, i) => { 
+                t += f.c; 
+                return `<div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl text-xs">
+                    <span class="font-medium text-slate-600">${f.n} <b class="ml-1 text-slate-400">${f.c}k</b></span>
+                    <button onclick="foods.splice(${i},1);updateFoodUI()" class="text-slate-300 px-2 text-lg">✕</button>
+                </div>`; 
+            }).join('');
             document.getElementById('foodSum').innerText = t;
         }
 
@@ -138,11 +158,11 @@
                 const [n, p] = ex.split('.');
                 const saved = exCals[n] || { reps: '', sets: '' };
                 return `<div class="p-3 bg-slate-50 rounded-xl flex justify-between items-center">
-                    <div class="text-[10px]"><b>${n}</b><br><span class="opacity-50">${p}</span></div>
+                    <div class="text-[10px]"><b>${n}</b><br><span class="opacity-40 uppercase font-bold">${p}</span></div>
                     <div class="flex gap-1 text-xs">
-                        <input type="number" value="${saved.reps}" oninput="calcEx('${n}', '${p}', this.value, null)" placeholder="下" class="w-10 p-1 text-center rounded">
-                        <span>x</span>
-                        <input type="number" value="${saved.sets}" oninput="calcEx('${n}', '${p}', null, this.value)" placeholder="組" class="w-10 p-1 text-center rounded">
+                        <input type="number" value="${saved.reps}" oninput="calcEx('${n}', '${p}', this.value, null)" placeholder="下" class="w-10 p-2 text-center rounded bg-white border-none">
+                        <span class="py-2">x</span>
+                        <input type="number" value="${saved.sets}" oninput="calcEx('${n}', '${p}', null, this.value)" placeholder="組" class="w-10 p-2 text-center rounded bg-white border-none">
                     </div>
                 </div>`;
             }).join('');
@@ -152,11 +172,9 @@
             if(!exCals[name]) exCals[name] = { reps: 0, sets: 0, cal: 0 };
             if(reps !== null) exCals[name].reps = parseInt(reps) || 0;
             if(sets !== null) exCals[name].sets = parseInt(sets) || 0;
-            
             let factor = 0.05;
             for(let key in exMap) { if(part.includes(key)) factor = exMap[key]; }
             exCals[name].cal = Math.round(exCals[name].reps * exCals[name].sets * factor);
-            
             let total = 0;
             for(let k in exCals) { total += exCals[k].cal; }
             document.getElementById('exSum').innerText = total + " kcal";
@@ -165,7 +183,13 @@
         function saveAll() {
             const cal = foods.reduce((s, f) => s + f.c, 0);
             let exT = 0; for(let k in exCals) exT += exCals[k].cal;
-            const data = { cal, foods, exT, exCals, w1: document.getElementById('w1').value, w2: document.getElementById('w2').value, w1L: document.getElementById('w1L').value, w2L: document.getElementById('w2L').value };
+            const data = { 
+                cal, foods, exT, exCals, 
+                w1: document.getElementById('w1').value, 
+                w2: document.getElementById('w2').value, 
+                w1L: document.getElementById('w1L').value, 
+                w2L: document.getElementById('w2L').value 
+            };
             localStorage.setItem('h_' + activeD, JSON.stringify(data));
             closeModal(); renderCal(); updateTop();
         }
@@ -185,9 +209,9 @@
                 let dots = '';
                 if(data && data.exT > 0) dots += `<div class="dot e-dot"></div>`;
                 body.innerHTML += `<div class="${cls}" onclick="openModal('${ds}')">
-                    <span class="text-xs opacity-40">${d}</span>
+                    <span class="text-xs opacity-40 font-bold">${d}</span>
                     ${data && data.cal ? `<div class="text-[9px] font-bold mt-1 text-slate-500">${data.cal}k</div>` : ''}
-                    ${data && data.w1 ? `<div class="text-[8px] opacity-30">${data.w1}</div>` : ''}
+                    ${data && data.w1 ? `<div class="text-[8px] opacity-30 mt-0.5">${data.w1}</div>` : ''}
                     ${dots}
                 </div>`;
             }
@@ -206,14 +230,21 @@
             document.body.classList.add('lock-screen');
         }
 
-        function closeModal() { document.getElementById('recordModal').classList.remove('active'); document.body.classList.remove('lock-screen'); }
+        function closeModal() { 
+            document.getElementById('recordModal').classList.remove('active'); 
+            document.body.classList.remove('lock-screen'); 
+        }
+
+        function handleOverlayClick(e) { if(e.target.id === 'recordModal') closeModal(); }
 
         function updateTop() {
             const today = new Date().toISOString().split('T')[0];
             const data = JSON.parse(localStorage.getItem('h_' + today)) || {};
-            const rem = 1800 - (data.cal || 0) + (data.exT || 0);
+            const foodCal = data.cal || 0;
+            const exCal = data.exT || 0;
+            const rem = 1800 - foodCal + exCal;
             document.getElementById('topRem').innerText = rem + " k";
-            document.getElementById('topExCal').innerText = (data.exT || 0);
+            document.getElementById('topExCal').innerText = exCal;
             document.getElementById('topW').innerText = (data.w1 || "--") + "kg";
         }
 
