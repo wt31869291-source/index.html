@@ -3,208 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全方位健康管理管家</title>
+    <title>健康管理管家 - 月曆版</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        .period-active { border: 2px solid #ff99bb !important; background-color: #fff0f5 !important; }
-        .today-btn { background-color: #4a90e2 !important; color: white !important; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+        .day-cell { min-height: 80px; border: 1px solid #f0f0f0; transition: 0.2s; position: relative; }
+        .day-cell:active { background-color: #eef2ff; }
+        .period-bg { background-color: #fff0f5 !important; border: 1px solid #ffb6c1; }
+        .has-data::after { content: '•'; color: #4f46e5; position: absolute; bottom: 5px; right: 5px; font-size: 20px; }
+        .today-mark { border: 2px solid #4f46e5 !important; }
         .hidden { display: none; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 pb-10">
+<body class="bg-gray-50 text-gray-800">
 
-    <div class="bg-white shadow-sm sticky top-0 z-10 p-4 border-b">
-        <div class="max-w-md mx-auto flex justify-between items-center">
+    <div id="calendarPage" class="max-w-md mx-auto min-h-screen bg-white shadow-lg">
+        <div class="p-4 border-b bg-indigo-600 text-white flex justify-between items-center">
+            <button onclick="changeMonth(-1)">◀</button>
+            <h1 id="currentMonthDisplay" class="text-xl font-bold text-center">2024年 1月</h1>
+            <button onclick="changeMonth(1)">▶</button>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 p-4 bg-indigo-50 text-center">
             <div>
-                <h1 id="displayDate" class="text-xl font-bold text-blue-600 cursor-pointer">2024-01-01</h1>
-                <p class="text-xs text-gray-500">點擊日期可切換 | <span id="periodDayText" class="text-pink-500 font-bold"></span></p>
+                <p class="text-[10px] text-indigo-400 uppercase">本月均重</p>
+                <p id="avgWeight" class="font-bold text-indigo-700">--</p>
             </div>
-            <button onclick="jumpToToday()" class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-medium">回今天</button>
+            <div>
+                <p class="text-[10px] text-indigo-400 uppercase">總飲水</p>
+                <p id="totalWater" class="font-bold text-indigo-700">--</p>
+            </div>
+            <div>
+                <p class="text-[10px] text-indigo-400 uppercase">BMI</p>
+                <p class="font-bold text-indigo-700">25.3</p>
+            </div>
+        </div>
+
+        <div class="calendar-grid bg-gray-100 text-center text-xs py-2 font-bold">
+            <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+        </div>
+        <div id="calendarBody" class="calendar-grid bg-white"></div>
+        
+        <div class="p-6 text-center text-xs text-gray-400">
+            點擊日期開始記錄當天數據
         </div>
     </div>
 
-    <div class="max-w-md mx-auto p-4 space-y-6">
-
-        <div class="bg-pink-50 p-4 rounded-2xl border border-pink-100">
-            <div class="flex justify-between items-center mb-2">
-                <span class="font-bold text-pink-700">生理期模式</span>
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="periodToggle" class="sr-only peer" onchange="updatePeriodStatus()">
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-500"></div>
-                </label>
-            </div>
-            <p class="text-xs text-pink-600 leading-relaxed">開啟後會自動計算第幾天，並在日曆標記紅框，同時增加約 200 大卡熱量緩衝。</p>
+    <div id="detailPage" class="max-w-md mx-auto min-h-screen bg-gray-50 hidden">
+        <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center z-20">
+            <button onclick="showCalendar()" class="text-indigo-600 font-medium">← 返回月曆</button>
+            <h2 id="detailDateTitle" class="font-bold">2024-01-01</h2>
+            <button onclick="saveAndBack()" class="bg-indigo-600 text-white px-4 py-1 rounded-lg text-sm">儲存</button>
         </div>
 
-        <div class="bg-white p-4 rounded-2xl shadow-sm border">
-            <h2 class="font-bold mb-3 flex items-center">⚖️ 體重紀錄</h2>
-            <div class="grid grid-cols-2 gap-3 mb-3">
-                <div class="space-y-1">
-                    <span class="text-xs text-gray-500">紀錄 1</span>
-                    <input type="time" id="wtTime1" class="w-full text-sm border-gray-200 rounded-lg">
-                    <input type="number" id="wtVal1" placeholder="kg" class="w-full border-gray-200 rounded-lg p-2 bg-blue-50">
-                    <input type="text" id="wtNote1" placeholder="備註(如:空腹)" class="w-full text-xs border-gray-200 rounded-lg">
+        <div class="p-4 space-y-4 pb-20">
+            <div class="bg-pink-50 p-4 rounded-xl flex justify-between items-center">
+                <div>
+                    <span class="font-bold text-pink-700">生理期開始</span>
+                    <p id="periodDayDetail" class="text-xs text-pink-500"></p>
                 </div>
-                <div class="space-y-1">
-                    <span class="text-xs text-gray-500">紀錄 2</span>
-                    <input type="time" id="wtTime2" class="w-full text-sm border-gray-200 rounded-lg">
-                    <input type="number" id="wtVal2" placeholder="kg" class="w-full border-gray-200 rounded-lg p-2 bg-purple-50">
-                    <input type="text" id="wtNote2" placeholder="備註(如:睡前)" class="w-full text-xs border-gray-200 rounded-lg">
-                </div>
+                <input type="checkbox" id="periodToggle" onchange="updatePeriod()" class="w-6 h-6 accent-pink-500">
             </div>
-        </div>
 
-        <div class="grid grid-cols-2 gap-4">
-            <div class="bg-white p-4 rounded-2xl shadow-sm border">
-                <h2 class="font-bold mb-2">💧 總飲水量</h2>
-                <input type="number" id="waterInput" placeholder="ml" class="w-full border-gray-200 rounded-lg p-2 text-blue-600 font-bold">
-            </div>
-            <div class="bg-white p-4 rounded-2xl shadow-sm border">
-                <h2 class="font-bold mb-2">📐 圍度(cm)</h2>
-                <div class="space-y-1">
-                    <input type="number" id="waist" placeholder="腰圍" class="w-full text-xs border-gray-200 rounded-lg">
-                    <input type="number" id="hip" placeholder="臀圍" class="w-full text-xs border-gray-200 rounded-lg">
-                    <input type="number" id="thigh" placeholder="腿圍" class="w-full text-xs border-gray-200 rounded-lg">
+            <div class="bg-white p-4 rounded-xl shadow-sm border space-y-3">
+                <h3 class="font-bold border-b pb-2">⚖️ 體重監測 (162cm)</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] text-gray-400">紀錄 1</label>
+                        <input type="time" id="wtTime1" class="w-full text-xs border-gray-100 mb-1">
+                        <input type="number" step="0.1" id="wtVal1" placeholder="kg" class="w-full p-2 bg-blue-50 rounded-lg text-sm">
+                        <input type="text" id="wtNote1" placeholder="備註" class="w-full text-[10px] border-none bg-transparent">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] text-gray-400">紀錄 2</label>
+                        <input type="time" id="wtTime2" class="w-full text-xs border-gray-100 mb-1">
+                        <input type="number" step="0.1" id="wtVal2" placeholder="kg" class="w-full p-2 bg-purple-50 rounded-lg text-sm">
+                        <input type="text" id="wtNote2" placeholder="備註" class="w-full text-[10px] border-none bg-transparent">
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="bg-white p-4 rounded-2xl shadow-sm border">
-            <h2 class="font-bold mb-2">🏃 運動項目</h2>
-            <input type="text" id="exerciseSearch" onkeyup="filterExercise()" placeholder="搜尋動作或部位(如:腹, 臀, 啞鈴)..." class="w-full mb-3 p-2 border-gray-200 rounded-lg bg-gray-50 text-sm">
-            
-            <div id="exerciseList" class="space-y-3 max-h-60 overflow-y-auto pr-2">
-                </div>
-            
-            <div class="mt-4 pt-4 border-t">
-                <p class="text-sm font-medium text-gray-600 mb-2">+ 自定義運動</p>
-                <div class="flex gap-2">
-                    <input type="text" id="customExName" placeholder="名稱" class="w-1/2 text-xs border-gray-200 rounded-lg">
-                    <input type="number" id="customExCal" placeholder="大卡" class="w-1/4 text-xs border-gray-200 rounded-lg">
-                    <button onclick="addCustomExercise()" class="w-1/4 bg-gray-800 text-white text-xs rounded-lg">新增</button>
+            <div class="bg-white p-4 rounded-xl shadow-sm border">
+                <h3 class="font-bold mb-3 border-b pb-2">💧 飲水與三圍</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm w-16">飲水量</span>
+                        <input type="number" id="waterInput" placeholder="ml" class="flex-1 p-2 bg-blue-50 rounded-lg text-sm">
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <input type="number" id="waist" placeholder="腰圍" class="p-2 border rounded-lg text-xs">
+                        <input type="number" id="hip" placeholder="臀圍" class="p-2 border rounded-lg text-xs">
+                        <input type="number" id="thigh" placeholder="腿圍" class="p-2 border rounded-lg text-xs">
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="bg-white p-4 rounded-2xl shadow-sm border">
-            <h2 class="font-bold mb-3">📊 趨勢分析</h2>
-            <div class="flex gap-2 mb-4">
-                <button onclick="drawChart('weight')" class="flex-1 py-1 bg-gray-100 rounded-lg text-sm">體重</button>
-                <button onclick="drawChart('water')" class="flex-1 py-1 bg-gray-100 rounded-lg text-sm">飲水</button>
-            </div>
-            <canvas id="trendChart" height="200"></canvas>
-        </div>
-
-        <button onclick="saveAll()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-blue-200">儲存今日紀錄</button>
-
-    </div>
-
-    <div id="dateModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
-        <div class="bg-white p-6 rounded-3xl w-full max-w-xs text-center">
-            <h3 class="font-bold mb-4">選取日期</h3>
-            <input type="date" id="datePicker" class="w-full p-2 border rounded-xl mb-4">
-            <div class="flex gap-2">
-                <button onclick="toggleModal()" class="flex-1 py-2 bg-gray-100 rounded-xl">取消</button>
-                <button onclick="changeDate()" class="flex-1 py-2 bg-blue-600 text-white rounded-xl">確定</button>
+            <div class="bg-white p-4 rounded-xl shadow-sm border">
+                <h3 class="font-bold mb-2 border-b pb-2">🏃 運動紀錄</h3>
+                <input type="text" id="exSearch" onkeyup="filterEx()" placeholder="搜尋部位或動作..." class="w-full p-2 bg-gray-100 rounded-lg text-sm mb-3">
+                <div id="exList" class="space-y-2 max-h-64 overflow-y-auto"></div>
             </div>
         </div>
     </div>
 
     <script>
-        let currentData = {};
-        let selectedDate = new Date().toISOString().split('T')[0];
-
-        const exercises = [
-            { name: "啞鈴負重深蹲", part: "腿臀", tool: "啞鈴" },
-            { name: "啞鈴夾胸", part: "胸", tool: "啞鈴" },
-            { name: "啞鈴划船", part: "背", tool: "啞鈴" },
-            { name: "左右側抬腿", part: "腿", tool: "徒手" },
-            { name: "跪式前後俯臥撐", part: "腹", tool: "徒手" },
-            { name: "俯臥後抬腿", part: "臀", tool: "徒手" },
-            { name: "腳心開合", part: "腿", tool: "徒手" },
-            { name: "跪姿左右抬腿", part: "腰腹", tool: "徒手" },
-            { name: "跪姿後抬腿(直)", part: "下臀", tool: "徒手" },
-            { name: "跪姿彎曲抬腿", part: "上臀", tool: "徒手" },
-            { name: "啞鈴W型外推", part: "手臂", tool: "啞鈴" },
-            { name: "臀橋", part: "臀", tool: "徒手" },
-            { name: "啞鈴側平舉", part: "肩", tool: "啞鈴" },
-            { name: "啞鈴硬拉", part: "臀", tool: "啞鈴" },
-            { name: "彈力帶前後繞肩", part: "肩背", tool: "彈力帶" },
-            { name: "彈力帶高位下拉", part: "肩背", tool: "彈力帶" },
-            { name: "彈力帶左右側拉", part: "手胸", tool: "彈力帶" },
-            { name: "左右腿分蹲", part: "臀", tool: "啞鈴" },
-            { name: "腳尖交叉點地", part: "腹", tool: "徒手" },
-            { name: "交替收腿", part: "腹", tool: "徒手" },
-            { name: "屈膝捲腹", part: "腹", tool: "徒手" },
-            { name: "直腿捲腹", part: "腹", tool: "徒手" },
-            { name: "自行車捲腹", part: "腹", tool: "徒手" },
-            { name: "剪刀腿", part: "腹", tool: "徒手" }
+        let currentYear, currentMonth;
+        let activeDate = "";
+        const exData = [
+            "啞鈴負重深蹲(1.5kg).腿臀", "啞鈴夾胸(1.5kg).胸", "啞鈴划船(1.5kg).背", 
+            "左右側抬腿.腿", "跪式前後俯臥撐.腹", "俯臥後抬腿.臀", "腳心開合.腿",
+            "跪姿左右抬腿.腰腹", "跪姿後抬腿(直).下臀", "跪姿彎曲抬腿.上臀",
+            "啞鈴w外推(1.5kg).手臂", "臀橋.臀", "啞鈴側平舉(1.5kg).肩",
+            "啞鈴硬拉(1.5kg).臀", "彈力帶前後繞肩.肩背", "彈力帶高位下拉.肩背",
+            "彈力帶左右側拉.手胸", "左右腿分蹲(1.5kg).臀", "腳尖交叉點地.腹",
+            "交替收腿.腹", "屈膝捲腹.腹", "直腿捲腹.腹", "自行車捲腹.腹", "剪刀腿.腹"
         ];
 
-        // 初始化
-        window.onload = function() {
-            renderExercises();
-            loadDateData(selectedDate);
-            document.getElementById('displayDate').addEventListener('click', toggleModal);
-            drawChart('weight');
+        window.onload = () => {
+            const now = new Date();
+            currentYear = now.getFullYear();
+            currentMonth = now.getMonth();
+            renderCalendar();
+            renderExList();
         };
 
-        function renderExercises() {
-            const list = document.getElementById('exerciseList');
-            list.innerHTML = exercises.map(ex => `
-                <div class="exercise-item flex justify-between items-center p-2 bg-gray-50 rounded-lg text-sm" data-name="${ex.name}" data-part="${ex.part}">
-                    <div>
-                        <div class="font-medium">${ex.name}</div>
-                        <div class="text-[10px] text-gray-400">${ex.part} | ${ex.tool}</div>
-                    </div>
-                    <div class="flex items-center gap-1">
-                        <input type="number" placeholder="下" class="w-12 p-1 border rounded ex-reps" onchange="saveAuto()">
-                        <span class="text-xs">x</span>
-                        <input type="number" placeholder="組" class="w-12 p-1 border rounded ex-sets" onchange="saveAuto()">
-                    </div>
-                </div>
-            `).join('');
+        function renderCalendar() {
+            const body = document.getElementById('calendarBody');
+            const display = document.getElementById('currentMonthDisplay');
+            body.innerHTML = '';
+            display.innerText = `${currentYear}年 ${currentMonth + 1}月`;
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const periodStart = localStorage.getItem('period_start');
+
+            // 補空白
+            for (let i = 0; i < firstDay; i++) {
+                body.innerHTML += `<div class="day-cell bg-gray-50"></div>`;
+            }
+
+            // 畫日期
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const data = JSON.parse(localStorage.getItem('health_' + dateStr));
+                const isToday = new Date().toISOString().split('T')[0] === dateStr;
+                
+                let classes = 'day-cell p-1 cursor-pointer';
+                if(isToday) classes += ' today-mark';
+                if(data) classes += ' has-data';
+                
+                // 生理期邏輯
+                if(periodStart) {
+                    const diff = (new Date(dateStr) - new Date(periodStart)) / (1000*60*60*24);
+                    if(diff >= 0 && diff < 7) classes += ' period-bg';
+                }
+
+                body.innerHTML += `<div class="${classes}" onclick="openDetail('${dateStr}')">
+                    <span class="text-sm font-medium">${d}</span>
+                    ${data && data.wtVal1 ? `<div class="text-[8px] text-blue-500">${data.wtVal1}kg</div>` : ''}
+                    ${data && data.water ? `<div class="text-[8px] text-cyan-600">💧${data.water}</div>` : ''}
+                </div>`;
+            }
+            updateSummary();
         }
 
-        function filterExercise() {
-            const q = document.getElementById('exerciseSearch').value.toLowerCase();
-            document.querySelectorAll('.exercise-item').forEach(item => {
-                const text = item.getAttribute('data-name') + item.getAttribute('data-part');
-                item.style.display = text.includes(q) ? 'flex' : 'none';
-            });
-        }
-
-        function loadDateData(date) {
-            selectedDate = date;
-            document.getElementById('displayDate').innerText = date;
-            const data = JSON.parse(localStorage.getItem('health_data_' + date)) || {};
+        function openDetail(date) {
+            activeDate = date;
+            document.getElementById('detailDateTitle').innerText = date;
+            const data = JSON.parse(localStorage.getItem('health_' + date)) || {};
             
-            // 體重
-            document.getElementById('wtVal1').value = data.wtVal1 || "";
-            document.getElementById('wtTime1').value = data.wtTime1 || "";
-            document.getElementById('wtNote1').value = data.wtNote1 || "";
-            document.getElementById('wtVal2').value = data.wtVal2 || "";
-            document.getElementById('wtTime2').value = data.wtTime2 || "";
-            document.getElementById('wtNote2').value = data.wtNote2 || "";
+            document.getElementById('wtVal1').value = data.wtVal1 || '';
+            document.getElementById('wtTime1').value = data.wtTime1 || '';
+            document.getElementById('wtNote1').value = data.wtNote1 || '';
+            document.getElementById('wtVal2').value = data.wtVal2 || '';
+            document.getElementById('wtTime2').value = data.wtTime2 || '';
+            document.getElementById('wtNote2').value = data.wtNote2 || '';
+            document.getElementById('waterInput').value = data.water || '';
+            document.getElementById('waist').value = data.waist || '';
+            document.getElementById('hip').value = data.hip || '';
+            document.getElementById('thigh').value = data.thigh || '';
             
-            // 飲水與圍度
-            document.getElementById('waterInput').value = data.water || "";
-            document.getElementById('waist').value = data.waist || "";
-            document.getElementById('hip').value = data.hip || "";
-            document.getElementById('thigh').value = data.thigh || "";
-
-            // 生理期
-            const periodStatus = localStorage.getItem('period_start_date');
-            document.getElementById('periodToggle').checked = (periodStatus === date);
-            updatePeriodText(date);
-
-            // 運動 (簡化處理)
-            document.querySelectorAll('.ex-reps').forEach(i => i.value = "");
-            document.querySelectorAll('.ex-sets').forEach(i => i.value = "");
+            document.getElementById('periodToggle').checked = (localStorage.getItem('period_start') === date);
+            
+            document.getElementById('calendarPage').classList.add('hidden');
+            document.getElementById('detailPage').classList.remove('hidden');
+            window.scrollTo(0,0);
         }
 
-        function saveAll() {
+        function saveAndBack() {
             const data = {
                 wtVal1: document.getElementById('wtVal1').value,
                 wtTime1: document.getElementById('wtTime1').value,
@@ -217,83 +203,61 @@
                 hip: document.getElementById('hip').value,
                 thigh: document.getElementById('thigh').value
             };
-            localStorage.setItem('health_data_' + selectedDate, JSON.stringify(data));
-            alert('儲存成功！');
-            drawChart('weight');
+            localStorage.setItem('health_' + activeDate, JSON.stringify(data));
+            showCalendar();
         }
 
-        function updatePeriodStatus() {
+        function showCalendar() {
+            document.getElementById('calendarPage').classList.remove('hidden');
+            document.getElementById('detailPage').classList.add('hidden');
+            renderCalendar();
+        }
+
+        function changeMonth(step) {
+            currentMonth += step;
+            if(currentMonth > 11) { currentMonth = 0; currentYear++; }
+            if(currentMonth < 0) { currentMonth = 11; currentYear--; }
+            renderCalendar();
+        }
+
+        function renderExList() {
+            const list = document.getElementById('exList');
+            list.innerHTML = exData.map(ex => {
+                const [name, part] = ex.split('.');
+                return `<div class="ex-item flex justify-between items-center p-2 bg-gray-50 rounded-lg" data-key="${ex}">
+                    <div class="text-xs"><b>${name}</b><br><span class="text-gray-400">${part}</span></div>
+                    <div class="flex gap-1"><input type="number" placeholder="下" class="w-10 p-1 text-xs border rounded">x<input type="number" placeholder="組" class="w-10 p-1 text-xs border rounded"></div>
+                </div>`;
+            }).join('');
+        }
+
+        function filterEx() {
+            const q = document.getElementById('exSearch').value.toLowerCase();
+            document.querySelectorAll('.ex-item').forEach(el => {
+                el.style.display = el.dataset.key.toLowerCase().includes(q) ? 'flex' : 'none';
+            });
+        }
+
+        function updatePeriod() {
             if(document.getElementById('periodToggle').checked) {
-                localStorage.setItem('period_start_date', selectedDate);
+                localStorage.setItem('period_start', activeDate);
             } else {
-                localStorage.removeItem('period_start_date');
+                localStorage.removeItem('period_start');
             }
-            updatePeriodText(selectedDate);
         }
 
-        function updatePeriodText(date) {
-            const startDate = localStorage.getItem('period_start_date');
-            const textEl = document.getElementById('periodDayText');
-            if(startDate) {
-                const diff = Math.floor((new Date(date) - new Date(startDate)) / (1000*60*60*24)) + 1;
-                if(diff >= 1 && diff <= 7) {
-                    textEl.innerText = `生理期第 ${diff} 天`;
-                    return;
+        function updateSummary() {
+            let weights = [], totalWater = 0;
+            for(let i=0; i<localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if(key.startsWith('health_')) {
+                    const d = JSON.parse(localStorage.getItem(key));
+                    if(d.wtVal1) weights.push(parseFloat(d.wtVal1));
+                    if(d.water) totalWater += parseInt(d.water);
                 }
             }
-            textEl.innerText = "";
-        }
-
-        function jumpToToday() {
-            selectedDate = new Date().toISOString().split('T')[0];
-            loadDateData(selectedDate);
-        }
-
-        function toggleModal() {
-            document.getElementById('dateModal').classList.toggle('hidden');
-        }
-
-        function changeDate() {
-            const newDate = document.getElementById('datePicker').value;
-            if(newDate) {
-                loadDateData(newDate);
-                toggleModal();
-            }
-        }
-
-        let myChart;
-        function drawChart(type) {
-            const ctx = document.getElementById('trendChart').getContext('2d');
-            if(myChart) myChart.destroy();
-
-            const labels = [];
-            const values = [];
-            const today = new Date();
-
-            for(let i=6; i>=0; i--) {
-                const d = new Date(today);
-                d.setDate(d.getDate() - i);
-                const ds = d.toISOString().split('T')[0];
-                labels.push(ds.slice(5));
-                const data = JSON.parse(localStorage.getItem('health_data_' + ds)) || {};
-                if(type === 'weight') values.push(data.wtVal1 || null);
-                else values.push(data.water || 0);
-            }
-
-            myChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: type === 'weight' ? '體重 (kg)' : '飲水 (ml)',
-                        data: values,
-                        borderColor: type === 'weight' ? '#8884d8' : '#3b82f6',
-                        tension: 0.3,
-                        fill: false
-                    }]
-                },
-                options: { responsive: true, plugins: { legend: { display: false } } }
-            });
+            if(weights.length) document.getElementById('avgWeight').innerText = (weights.reduce((a,b)=>a+b)/weights.length).toFixed(1) + 'kg';
+            document.getElementById('totalWater').innerText = (totalWater/1000).toFixed(1) + 'L';
         }
     </script>
 </body>
