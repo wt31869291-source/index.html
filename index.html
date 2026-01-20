@@ -3,33 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>高級莫蘭迪健康筆記 v19 - Final</title>
+    <title>高級莫蘭迪健康筆記 v20 - Final</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --m-bg: #f4f6f7; --m-blue: #8fa3ad; --m-dark: #4a555c; }
-        body { background: var(--m-bg); font-family: sans-serif; color: var(--m-dark); overflow-x: hidden; }
+        body { background: var(--m-bg); font-family: sans-serif; color: var(--m-dark); -webkit-tap-highlight-color: transparent; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
         .day-cell { min-height: 100px; background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; position: relative; cursor: pointer; }
         .today-mark { border: 2px solid var(--m-blue) !important; background: #fcfdfe; }
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: flex-end; }
         .modal-overlay.active { display: flex; }
         .modal-content { background: #fff; width: 100%; max-width: 450px; border-radius: 30px 30px 0 0; height: 90vh; display: flex; flex-direction: column; }
-        .tag { cursor: pointer; background: #f8fafc; padding: 4px 8px; border-radius: 6px; font-size: 10px; margin: 2px; border: 1px solid #edf2f7; color: #64748b; }
+        .tag { cursor: pointer; background: #f1f5f9; padding: 6px 12px; border-radius: 8px; font-size: 11px; margin: 2px; border: 1px solid #e2e8f0; color: #475569; }
         .dot { width: 5px; height: 5px; border-radius: 50%; background: #d9c8a7; position: absolute; top: 8px; right: 8px; }
+        input[type="number"]::-webkit-inner-spin-button { display: none; }
     </style>
 </head>
 <body>
 
     <div class="max-w-md mx-auto min-h-screen pb-6">
-        <div class="p-8 text-white rounded-b-[45px] shadow-lg" style="background: #6a7c85;" onclick="showTrend()">
+        <div class="p-8 text-white rounded-b-[45px] shadow-lg" style="background: #6a7c85;">
             <div class="flex justify-between items-start mb-6">
-                <div>
+                <div onclick="showTrend('main')">
                     <h1 class="text-xl tracking-widest opacity-90 font-medium">HEALTH LOG</h1>
-                    <p id="topDate" class="text-[10px] opacity-70 mt-1"></p>
+                    <p id="topDate" class="text-[10px] opacity-70 mt-1 uppercase"></p>
                 </div>
-                <div class="text-right">
-                    <p class="text-[10px] opacity-70 mb-1">目前體重</p>
+                <div class="text-right" onclick="showTrend('main')">
+                    <p class="text-[10px] opacity-70 mb-1">目前體重 (看波動)</p>
                     <p id="topW" class="text-4xl font-light tracking-tighter">--</p>
                 </div>
             </div>
@@ -38,7 +39,7 @@
             </div>
             <div class="grid grid-cols-2 gap-4 text-center">
                 <div class="bg-white/10 p-3 rounded-2xl"><p class="text-[10px] opacity-80 mb-1 font-bold">剩餘預算</p><p id="topRem" class="text-lg font-bold">--</p></div>
-                <div class="bg-white/10 p-3 rounded-2xl"><p class="text-[10px] opacity-80 mb-1 font-bold">運動(代謝)消耗</p><p id="topExCal" class="text-lg font-bold">0</p></div>
+                <div class="bg-white/10 p-3 rounded-2xl cursor-pointer" onclick="showTrend('ex')"><p class="text-[10px] opacity-80 mb-1 font-bold">運動(代謝)消耗 ▲</p><p id="topExCal" class="text-lg font-bold">0</p></div>
             </div>
         </div>
 
@@ -49,52 +50,49 @@
 
     <div id="trendModal" class="fixed inset-0 bg-white z-[2000] hidden flex-col p-6 overflow-y-auto">
         <div class="flex justify-between items-center mb-6">
-            <h3 class="font-bold text-slate-600">數據趨勢</h3>
+            <h3 id="trendTitle" class="font-bold text-slate-600">數據趨勢</h3>
             <button onclick="hideTrend()" class="text-3xl text-slate-300">✕</button>
         </div>
-        <canvas id="weightChart" class="mb-8"></canvas>
-        <canvas id="calorieChart"></canvas>
+        <div id="chartContainer" class="space-y-8">
+            <canvas id="chartA"></canvas>
+            <canvas id="chartB"></canvas>
+        </div>
+        <button onclick="hideTrend()" class="w-full mt-10 bg-slate-500 text-white py-4 rounded-2xl font-bold">返回首頁</button>
     </div>
 
     <div id="recordModal" class="modal-overlay" onclick="closeModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="p-6 border-b flex justify-between items-center bg-white sticky top-0 z-50">
-                <h3 id="modalDateTitle" class="font-bold text-slate-600"></h3>
+                <h3 id="modalDateTitle" class="font-bold text-slate-600">數據錄入</h3>
                 <button onclick="closeModal()" class="text-slate-300 text-3xl px-4">✕</button>
             </div>
             
             <div class="flex-1 overflow-y-auto p-6 space-y-8">
                 <div class="space-y-3">
-                    <label class="text-sm font-bold text-slate-500">🍕 飲食紀錄 (點擊列表可修改)</label>
+                    <label class="text-sm font-bold text-slate-500">🍕 飲食 (輸入名稱看預估)</label>
                     <div class="flex gap-1">
-                        <input type="text" id="fIn" oninput="debounceFood(this.value)" placeholder="食物" class="flex-1 p-3 bg-slate-50 rounded-xl text-sm border-none shadow-inner">
-                        <input type="number" id="cIn" placeholder="kcal" class="w-16 p-3 bg-slate-50 rounded-xl text-sm border-none shadow-inner">
+                        <input type="text" id="fIn" oninput="debounceFood(this.value)" placeholder="食物名稱" class="flex-1 p-3 bg-slate-50 rounded-xl text-sm border-none shadow-inner">
+                        <input type="number" id="cIn" placeholder="kcal" class="w-20 p-3 bg-slate-50 rounded-xl text-sm border-none shadow-inner">
                         <button onclick="addF()" class="bg-slate-500 text-white px-4 rounded-xl text-xs font-bold">加</button>
                     </div>
-                    <div id="estBox" class="flex flex-wrap gap-1">
-                        <span class="text-[9px] text-slate-400 w-full mb-1">熱量參考：</span>
-                        <div onclick="selectFood('雞蛋',75)" class="tag">雞蛋(75)</div>
-                        <div onclick="selectFood('地瓜',150)" class="tag">地瓜(150)</div>
-                        <div onclick="selectFood('雞胸肉',165)" class="tag">雞胸肉(165)</div>
-                        <div onclick="selectFood('黑咖啡',5)" class="tag">黑咖啡(5)</div>
-                    </div>
+                    <div id="estBox" class="flex flex-wrap gap-1"></div>
                     <div id="fList" class="space-y-2 mt-2"></div>
                 </div>
 
                 <div class="space-y-3">
                     <label class="text-sm font-bold text-slate-500">💧 飲水總量 (ml)</label>
-                    <input type="number" id="waterIn" oninput="updateWaterBonus()" placeholder="手動輸入" class="w-full p-4 bg-blue-50/50 rounded-xl text-xl font-bold text-blue-500 border-none">
-                    <p class="text-[10px] text-blue-400">代謝紅利：+<span id="waterBonus">0</span> kcal</p>
+                    <input type="number" id="waterIn" oninput="updateWaterBonus()" placeholder="手動輸入 ml" class="w-full p-4 bg-blue-50/50 rounded-xl text-xl font-bold text-blue-500 border-none">
+                    <p class="text-[10px] text-blue-400">水力代謝紅利：+<span id="waterBonus">0</span> kcal</p>
                 </div>
 
                 <div class="space-y-3">
-                    <label class="text-sm font-bold text-slate-500">⚖️ 體重監測</label>
+                    <label class="text-sm font-bold text-slate-500">⚖️ 體重監測 (點擊標籤修改)</label>
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="p-4 bg-slate-50 rounded-2xl shadow-inner">
+                        <div class="p-4 bg-slate-50 rounded-2xl">
                             <input type="text" id="w1L" class="w-full bg-transparent text-[10px] text-slate-400 mb-1 border-none p-0 font-bold" placeholder="早上空腹">
                             <input type="number" step="0.1" id="w1" placeholder="0.0" class="w-full bg-transparent font-bold text-2xl text-slate-600 border-none p-0">
                         </div>
-                        <div class="p-4 bg-slate-50 rounded-2xl shadow-inner">
+                        <div class="p-4 bg-slate-50 rounded-2xl">
                             <input type="text" id="w2L" class="w-full bg-transparent text-[10px] text-slate-400 mb-1 border-none p-0 font-bold" placeholder="睡前紀錄">
                             <input type="number" step="0.1" id="w2" placeholder="0.0" class="w-full bg-transparent font-bold text-2xl text-slate-600 border-none p-0">
                         </div>
@@ -102,21 +100,21 @@
                 </div>
 
                 <div class="space-y-4 pb-12">
-                    <label class="text-sm font-bold text-slate-500">🏃 消耗清單 (自動算熱量)</label>
-                    <input type="text" id="exQ" oninput="debounceEx()" placeholder="搜尋：臀、腹、打掃..." class="w-full p-4 bg-slate-50 rounded-xl text-sm border-none shadow-inner">
+                    <label class="text-sm font-bold text-slate-500">🏃 運動/家事 (輸入下數自動算卡)</label>
+                    <input type="text" id="exQ" oninput="debounceEx()" placeholder="搜尋：臀、腿、腹、打掃、散步..." class="w-full p-4 bg-slate-50 rounded-xl text-sm border-none shadow-inner">
                     <div id="exList" class="space-y-3 mt-2"></div>
                 </div>
             </div>
             
-            <div class="p-6 border-t bg-white shadow-inner">
-                <button onclick="saveAll()" class="w-full bg-slate-600 text-white py-5 rounded-2xl font-bold">儲存所有紀錄</button>
+            <div class="p-6 border-t bg-white">
+                <button onclick="saveAll()" class="w-full bg-slate-600 text-white py-5 rounded-2xl font-bold shadow-lg">儲存今日數據</button>
             </div>
         </div>
     </div>
 
     <script>
-        let currY, currM, activeD = "", foods = [], exCals = {}, timer, wChart, cChart;
-        const foodDict = { "雞蛋":75, "地瓜":150, "雞胸肉":165, "黑咖啡":5, "拿鐵":150, "水餃":50, "燕麥":100, "白飯":200, "蛋餅":300 };
+        let currY, currM, activeD = "", foods = [], exCals = {}, timer, chartA, chartB;
+        const foodDict = { "雞蛋":75, "雞肉捲":820, "地瓜":150, "雞胸肉":165, "黑咖啡":5, "拿鐵":150, "水餃":50, "燕麥":100, "白飯":200, "蛋餅":300, "雞排":600, "燙青菜":50, "香蕉":90, "蘋果":60 };
         const baseExData = [
             "啞鈴負重深蹲.臀腿.0.1", "啞鈴夾胸.胸.0.1", "啞鈴划船.背.0.1", "左右側抬腿.腿.0.08",
             "跪式前後俯臥撐.腹.0.1", "俯臥後抬腿.臀.0.08", "腳心開合.腿.0.08", "跪姿左右抬腿.腰腹.0.08",
@@ -145,9 +143,9 @@
                 const [n, p, rate] = ex.split('.');
                 const saved = exCals[n] || { reps: '', sets: '' };
                 const isTime = parseFloat(rate) >= 1; 
-                const calPreview = saved.reps ? (isTime ? Math.round(saved.reps * rate) : Math.round(saved.reps * 1 * rate)) : 0;
-                return `<div class="p-4 bg-slate-50 rounded-2xl flex justify-between items-center">
-                    <div class="flex-1 text-xs"><b>${n}</b><p class="text-[9px] text-slate-400">估計: ${calPreview} kcal/組</p></div>
+                const curCal = saved.reps ? (isTime ? Math.round(saved.reps * rate * (saved.sets||1)) : Math.round(saved.reps * (saved.sets||1) * rate)) : 0;
+                return `<div class="p-4 bg-slate-50 rounded-2xl flex justify-between items-center border border-transparent hover:border-slate-200">
+                    <div class="flex-1 text-xs"><b>${n}</b><p id="cal-${n}" class="text-[9px] text-blue-400 font-bold mt-1">預計消耗: ${curCal} kcal</p></div>
                     <div class="flex items-center gap-1">
                         <input type="number" value="${saved.reps}" oninput="calcEx('${n}','${p}',this.value,null,${rate})" class="w-12 p-2 text-center rounded-lg bg-white border-none shadow-sm text-xs" placeholder="${isTime?'分':'下'}">
                         <input type="number" value="${saved.sets}" oninput="calcEx('${n}','${p}',null,this.value,${rate})" class="w-12 p-2 text-center rounded-lg bg-white border-none shadow-sm text-xs" placeholder="組">
@@ -160,38 +158,35 @@
             if(!exCals[n]) exCals[n] = { reps: 0, sets: 0, cal: 0, part: p };
             if(r !== null) exCals[n].reps = parseInt(r) || 0;
             if(s !== null) exCals[n].sets = parseInt(s) || 1;
-            exCals[n].cal = rate < 1 ? Math.round(exCals[n].reps * exCals[n].sets * rate) : Math.round(exCals[n].reps * rate * exCals[n].sets);
+            const isTime = rate >= 1;
+            exCals[n].cal = isTime ? Math.round(exCals[n].reps * rate * exCals[n].sets) : Math.round(exCals[n].reps * exCals[n].sets * rate);
+            const el = document.getElementById(`cal-${n}`);
+            if(el) el.innerText = `預計消耗: ${exCals[n].cal} kcal`;
         }
 
-        function selectFood(k, c) { document.getElementById('fIn').value = k; document.getElementById('cIn').value = c; }
         function debounceFood(v) { clearTimeout(timer); timer = setTimeout(() => {
-            const b = document.getElementById('estBox'); 
+            const b = document.getElementById('estBox'); b.innerHTML = ''; if(!v) return;
             const matches = Object.keys(foodDict).filter(k => k.includes(v));
-            if(v && matches.length) {
-                b.innerHTML = matches.map(k => `<div onclick="selectFood('${k}',${foodDict[k]})" class="tag">${k}(${foodDict[k]})</div>`).join('');
-            }
+            b.innerHTML = matches.map(k => `<div onclick="selectFood('${k}',${foodDict[k]})" class="tag">${k} (${foodDict[k]}k)</div>`).join('');
         }, 200); }
 
+        function selectFood(k, c) { document.getElementById('fIn').value = k; document.getElementById('cIn').value = c; document.getElementById('estBox').innerHTML = ''; }
         function addF() {
             const n = document.getElementById('fIn').value || "食物";
             const c = parseInt(document.getElementById('cIn').value) || 0;
             foods.push({n, c}); updateFoodUI();
             document.getElementById('fIn').value = ""; document.getElementById('cIn').value = "";
         }
-
-        function editFood(i) {
-            const f = foods[i];
-            document.getElementById('fIn').value = f.n;
-            document.getElementById('cIn').value = f.c;
-            foods.splice(i, 1); updateFoodUI();
-        }
-
         function updateFoodUI() {
             const l = document.getElementById('fList'); 
             l.innerHTML = foods.map((f, i) => `<div class="flex justify-between bg-slate-50 p-3 rounded-xl text-xs" onclick="editFood(${i})">
                 <span>🍴 ${f.n} <b class="text-slate-400 font-normal ml-2">${f.c} kcal</b></span>
-                <span class="text-[9px] text-slate-300">點擊修改</span>
+                <span class="text-[9px] text-slate-300 italic">點擊修改</span>
             </div>`).join('');
+        }
+        function editFood(i) {
+            const f = foods[i]; document.getElementById('fIn').value = f.n; document.getElementById('cIn').value = f.c;
+            foods.splice(i, 1); updateFoodUI();
         }
 
         function saveAll() {
@@ -216,7 +211,7 @@
             document.getElementById('topExCal').innerText = (data.exT || 0) + " kcal";
             document.getElementById('topW').innerText = (data.w1 || data.w2 || "--") + " kg";
             document.getElementById('topDate').innerText = new Date().toLocaleDateString('zh-TW', {month:'long', day:'numeric'});
-            document.getElementById('topAdvice').innerText = rem > 500 ? "目前餘額充足，建議攝取蛋白質與原型澱粉。" : "熱量剩餘不多，建議晚餐清淡為主。";
+            document.getElementById('topAdvice').innerText = rem > 500 ? "餘額充足，可多補充蛋白質。" : "餘額較少，建議晚餐清淡。";
         }
 
         function renderCal() {
@@ -249,17 +244,31 @@
         }
 
         function closeModal() { document.getElementById('recordModal').classList.remove('active'); }
-        function showTrend() {
+        
+        function showTrend(type) {
             document.getElementById('trendModal').classList.remove('hidden');
-            const labels = [], wData = [], cData = [];
+            const labels = [], wData = [], cData = [], exData = [];
             for (let i = 1; i <= 31; i++) {
                 const ds = `${currY}-${String(currM + 1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
                 const data = JSON.parse(localStorage.getItem('h_' + ds)) || {};
-                labels.push(i); wData.push(data.w1 || data.w2 || null); cData.push(data.cal || null);
+                labels.push(i);
+                wData.push(data.w1 || data.w2 || null);
+                cData.push(data.cal || null);
+                exData.push(data.exT || null);
             }
-            if(wChart) wChart.destroy(); if(cChart) cChart.destroy();
-            wChart = new Chart(document.getElementById('weightChart'), { type: 'line', data: { labels, datasets: [{ label: '體重 (kg)', data: wData, borderColor: '#8fa3ad', tension: 0.3, spanGaps: true }] } });
-            cChart = new Chart(document.getElementById('calorieChart'), { type: 'bar', data: { labels, datasets: [{ label: '攝取 (kcal)', data: cData, backgroundColor: '#d9c8a7' }] } });
+            if(chartA) chartA.destroy(); if(chartB) chartB.destroy();
+            const ctxA = document.getElementById('chartA').getContext('2d');
+            const ctxB = document.getElementById('chartB').getContext('2d');
+
+            if(type === 'main') {
+                document.getElementById('trendTitle').innerText = "體重與攝取趨勢";
+                chartA = new Chart(ctxA, { type: 'line', data: { labels, datasets: [{ label: '體重 (kg)', data: wData, borderColor: '#8fa3ad', tension: 0.3, spanGaps: true }] } });
+                chartB = new Chart(ctxB, { type: 'bar', data: { labels, datasets: [{ label: '攝取 (kcal)', data: cData, backgroundColor: '#d1d5db' }] } });
+            } else {
+                document.getElementById('trendTitle').innerText = "運動消耗趨勢";
+                chartA = new Chart(ctxA, { type: 'line', data: { labels, datasets: [{ label: '運動消耗 (kcal)', data: exData, borderColor: '#d9c8a7', backgroundColor: '#fdfbf7', fill: true, tension: 0.3, spanGaps: true }] } });
+                chartB = new Chart(ctxB, { type: 'bar', data: { labels, datasets: [{ label: '每日運動量', data: exData, backgroundColor: '#cbd5e1' }] } });
+            }
         }
         function hideTrend() { document.getElementById('trendModal').classList.add('hidden'); }
     </script>
