@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>高級莫蘭迪健康筆記 v13</title>
+    <title>高級莫蘭迪健康筆記 v14</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --m-bg: #f4f6f7; --m-blue: #8fa3ad; --m-dark: #4a555c; }
-        body { background: var(--m-bg); font-family: sans-serif; color: var(--m-dark); overflow-x: hidden; }
+        body { background: var(--m-bg); font-family: sans-serif; color: var(--m-dark); }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
         .day-cell { min-height: 100px; background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; position: relative; }
-        .today-mark { border: 2px solid var(--m-blue) !important; background: #fcfdfe; }
+        .today-mark { border: 2.5px solid var(--m-blue) !important; }
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: flex-end; }
         .modal-overlay.active { display: flex; }
         .modal-content { background: #fff; width: 100%; max-width: 450px; border-radius: 30px 30px 0 0; height: 90vh; display: flex; flex-direction: column; }
@@ -28,64 +28,52 @@
             <div class="flex justify-between items-start mb-6">
                 <div onclick="showTrend()" class="cursor-pointer">
                     <h1 class="text-xl tracking-widest opacity-90 font-medium">HEALTH LOG</h1>
-                    <p id="topDate" class="text-[10px] opacity-70 mt-1"></p>
+                    <p id="topDate" class="text-[10px] opacity-70 mt-1 uppercase"></p>
                 </div>
                 <div class="text-right" onclick="showTrend()">
-                    <p class="text-[10px] opacity-70 mb-1">目前體重 (看波動)</p>
+                    <p class="text-[10px] opacity-70 mb-1">目前體重</p>
                     <p id="topW" class="text-4xl font-light tracking-tighter">--</p>
                 </div>
             </div>
-            
-            <div class="bg-black/10 p-4 rounded-2xl mb-6 text-xs leading-relaxed border-l-4 border-white/50 shadow-inner">
-                🥗 <span id="topAdvice">讀取數據中...</span>
+            <div class="bg-black/10 p-4 rounded-2xl mb-6 text-xs leading-relaxed border-l-4 border-white/50">
+                🥗 <span id="topAdvice">讀取中...</span>
             </div>
-
             <div class="grid grid-cols-2 gap-4 text-center">
-                <div class="bg-white/10 p-3 rounded-2xl"><p class="text-[10px] opacity-80 mb-1 font-bold">剩餘預算</p><p id="topRem" class="text-lg font-bold">--</p></div>
-                <div class="bg-white/10 p-3 rounded-2xl"><p class="text-[10px] opacity-80 mb-1 font-bold">運動消耗</p><p id="topExCal" class="text-lg font-bold">0 kcal</p></div>
+                <div class="bg-white/10 p-3 rounded-2xl"><p class="text-[10px] opacity-80 mb-1">剩餘預算</p><p id="topRem" class="text-lg font-bold">--</p></div>
+                <div class="bg-white/10 p-3 rounded-2xl"><p class="text-[10px] opacity-80 mb-1">總消耗 (含代謝)</p><p id="topExCal" class="text-lg font-bold">0</p></div>
             </div>
         </div>
 
         <div class="p-5">
-            <div class="flex justify-between items-center mb-6 px-2 text-slate-400 font-bold">
-                <button onclick="changeMonth(-1)">〈</button>
-                <h2 id="monthTitle" class="text-slate-600 tracking-widest"></h2>
-                <button onclick="changeMonth(1)">〉</button>
-            </div>
-            <div class="calendar-grid text-center text-[10px] text-slate-400 mb-3 font-bold uppercase">
-                <div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div>
-            </div>
-            <div id="calendarBody" class="calendar-grid"></div>
+            <div id="calendarBody" class="calendar-grid mt-10"></div>
         </div>
     </div>
 
     <div id="trendModal">
         <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold text-slate-600">數據趨勢分析</h3>
-            <button onclick="hideTrend()" class="text-slate-300 text-3xl">✕</button>
+            <h3 class="text-xl font-bold text-slate-600">數據趨勢</h3>
+            <button onclick="hideTrend()" class="text-slate-300 text-3xl p-2">✕</button>
         </div>
-        <div class="space-y-8">
-            <div class="bg-slate-50 p-4 rounded-2xl"><canvas id="weightChart"></canvas></div>
-            <div class="bg-slate-50 p-4 rounded-2xl"><canvas id="calorieChart"></canvas></div>
-        </div>
-        <button onclick="hideTrend()" class="w-full mt-10 bg-slate-500 text-white py-4 rounded-2xl font-bold">關閉視窗</button>
+        <canvas id="weightChart" class="mb-8"></canvas>
+        <canvas id="calorieChart"></canvas>
+        <button onclick="hideTrend()" class="w-full mt-10 bg-slate-500 text-white py-4 rounded-2xl font-bold">返回</button>
     </div>
 
     <div id="recordModal" class="modal-overlay" onclick="closeModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-50">
-                <h3 id="modalDateTitle" class="font-bold text-slate-600 text-lg"></h3>
+                <h3 id="modalDateTitle" class="font-bold text-slate-600"></h3>
                 <button type="button" onclick="closeModal()" class="text-slate-300 text-3xl px-4 py-2">✕</button>
             </div>
             
             <div class="flex-1 overflow-y-auto p-6 space-y-10">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="space-y-3">
-                        <div class="flex justify-between items-center"><label class="text-sm font-bold text-slate-500">🍕 飲食紀錄</label><span id="foodSum" class="text-sm font-bold text-slate-400">0k</span></div>
+                        <label class="text-sm font-bold text-slate-500">🍕 飲食紀錄</label>
                         <div class="flex gap-2">
-                            <input type="text" id="fIn" oninput="debounceEst(this.value)" placeholder="食物名稱" class="flex-1 p-3 bg-slate-50 rounded-xl text-sm border-none">
+                            <input type="text" id="fIn" oninput="debounceEst(this.value)" placeholder="食物..." class="flex-1 p-3 bg-slate-50 rounded-xl text-sm border-none">
                             <input type="number" id="cIn" placeholder="kcal" class="w-20 p-3 bg-slate-50 rounded-xl text-sm border-none">
-                            <button type="button" onclick="addF()" class="bg-slate-400 text-white px-4 rounded-xl text-xs font-bold">加</button>
+                            <button type="button" onclick="addF()" class="bg-slate-400 text-white px-4 rounded-xl text-xs">加</button>
                         </div>
                         <div id="estBox" class="flex flex-wrap"></div>
                         <div id="fList" class="space-y-2"></div>
@@ -93,104 +81,89 @@
                     <div class="space-y-3">
                         <label class="text-sm font-bold text-slate-500">💧 飲水 (ml)</label>
                         <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl">
-                            <button type="button" onclick="addWater(-250)" class="w-10 h-10 bg-white rounded-lg shadow-sm">-</button>
+                            <button type="button" onclick="updateWater(-250)" class="w-8 h-8 bg-white rounded shadow-sm">-</button>
                             <span id="waterVal" class="font-bold text-slate-600">0</span>
-                            <button type="button" onclick="addWater(250)" class="w-10 h-10 bg-white rounded-lg shadow-sm">+</button>
+                            <button type="button" onclick="updateWater(250)" class="w-8 h-8 bg-white rounded shadow-sm">+</button>
                         </div>
+                        <p class="text-[9px] text-blue-400 italic">水力代謝：+<span id="waterBonus">0</span> kcal</p>
                     </div>
                 </div>
 
                 <div class="space-y-3">
-                    <label class="text-sm font-bold text-slate-500">⚖️ 體重監測 (kg)</label>
+                    <label class="text-sm font-bold text-slate-500">⚖️ 體重監測</label>
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="p-4 bg-slate-50 rounded-2xl"><input type="number" step="0.1" id="w1" placeholder="早上最輕" class="w-full bg-transparent text-center font-bold text-slate-600 border-none p-0"></div>
-                        <div class="p-4 bg-slate-50 rounded-2xl"><input type="number" step="0.1" id="w2" placeholder="晚上最重" class="w-full bg-transparent text-center font-bold text-slate-600 border-none p-0"></div>
+                        <div class="p-4 bg-slate-50 rounded-2xl">
+                            <p class="text-[10px] text-slate-400 mb-1">早上空腹</p>
+                            <input type="number" step="0.1" id="w1" placeholder="0.0" class="w-full bg-transparent font-bold text-slate-600 border-none p-0">
+                        </div>
+                        <div class="p-4 bg-slate-50 rounded-2xl">
+                            <p class="text-[10px] text-slate-400 mb-1">睡前紀錄</p>
+                            <input type="number" step="0.1" id="w2" placeholder="0.0" class="w-full bg-transparent font-bold text-slate-600 border-none p-0">
+                        </div>
                     </div>
                 </div>
 
-                <div class="space-y-4">
-                    <label class="text-sm font-bold text-slate-500">🏃 消耗紀錄 (運動/家事/散步)</label>
-                    <div class="grid grid-cols-2 gap-3 mb-4">
-                        <button type="button" onclick="addExtra('打掃家務', 100, '全身')" class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100">+ 打掃家務 (30分)</button>
-                        <button type="button" onclick="addExtra('戶外散步', 90, '腿部')" class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100">+ 戶外散步 (30分)</button>
+                <div class="space-y-4 pb-10">
+                    <label class="text-sm font-bold text-slate-500">🏃 消耗項目</label>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <button type="button" onclick="toggleExtra('打掃家務', 100, '全身')" class="tag">🧹 家事打掃</button>
+                        <button type="button" onclick="toggleExtra('戶外散步', 90, '腿部')" class="tag">👟 散步</button>
                     </div>
-                    <input type="text" id="exQ" oninput="debounceEx()" placeholder="搜尋動作(深蹲,捲腹...)" class="w-full p-4 bg-slate-50 rounded-2xl text-sm border-none">
+                    <input type="text" id="exQ" oninput="debounceEx()" placeholder="搜尋專業動作..." class="w-full p-4 bg-slate-50 rounded-2xl text-sm border-none shadow-inner">
                     <div id="exList" class="space-y-2 mt-2"></div>
                 </div>
 
-                <div class="bg-slate-100/50 p-5 rounded-3xl space-y-2">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Today's Summary</p>
-                    <div id="exSummary" class="text-xs text-slate-600 leading-relaxed text-center italic">今日尚未有活動紀錄</div>
+                <div id="sumBox" class="bg-slate-50 p-4 rounded-2xl text-[11px] text-slate-400 italic text-center">
+                    尚未有活動摘要...
                 </div>
             </div>
             
-            <div class="p-6 border-t bg-white">
-                <button type="button" onclick="saveAll()" class="w-full bg-slate-600 text-white py-5 rounded-2xl font-bold shadow-lg">儲存今日數據</button>
-            </div>
+            <div class="p-6 border-t"><button type="button" onclick="saveAll()" class="w-full bg-slate-600 text-white py-5 rounded-2xl font-bold">儲存數據</button></div>
         </div>
     </div>
 
     <script>
         let currY, currM, activeD = "", foods = [], exCals = {}, curWater = 0, timer, wChart, cChart;
-        const dict = { "凱撒雞肉捲":820, "地瓜":150, "炒青菜":100, "雞胸肉":165, "拿鐵":150, "水餃":50, "蛋餅":300 };
-        const exData = ["啞鈴深蹲.腿","啞鈴夾胸.胸","側抬腿.腿","捲腹.腹","臀橋.臀","開合跳.全身"];
+        const dict = { "凱撒雞肉捲":820, "地瓜":150, "雞胸肉":165, "蛋餅":300 };
+        const exData = ["啞鈴深蹲.腿","捲腹.腹","側抬腿.腿","臀橋.臀"];
 
         window.onload = () => {
             const n = new Date(); currY = n.getFullYear(); currM = n.getMonth();
             renderCal(); updateTop();
         };
 
-        function addWater(v) { curWater = Math.max(0, curWater + v); document.getElementById('waterVal').innerText = curWater; }
-        function addF() {
-            const n = document.getElementById('fIn').value || "食物";
-            const c = parseInt(document.getElementById('cIn').value) || 0;
-            foods.push({n, c}); updateFoodUI();
-            document.getElementById('fIn').value = ""; document.getElementById('cIn').value = "";
-        }
-        function updateFoodUI() {
-            const l = document.getElementById('fList'); let t = 0;
-            l.innerHTML = foods.map((f, i) => { t += f.c; return `<div class="flex justify-between bg-slate-50 p-3 rounded-lg text-xs"><span>${f.n} <b>${f.c}k</b></span><button type="button" onclick="foods.splice(${i},1);updateFoodUI()">✕</button></div>`; }).join('');
-            document.getElementById('foodSum').innerText = t + "k";
+        function updateWater(v) { 
+            curWater = Math.max(0, curWater + v); 
+            document.getElementById('waterVal').innerText = curWater; 
+            document.getElementById('waterBonus').innerText = Math.floor(curWater / 250) * 25;
+            updateSummary();
         }
 
-        function addExtra(name, cal, part) {
-            if(!exCals[name]) exCals[name] = { reps: 30, sets: 1, cal: 0, part: part };
-            exCals[name].cal += cal;
-            updateExSummary();
+        function toggleExtra(name, cal, part) {
+            if (exCals[name]) { delete exCals[name]; } 
+            else { exCals[name] = { reps: 30, sets: 1, cal: cal, part: part }; }
+            updateSummary(); filterEx();
         }
 
-        function debounceEx() { clearTimeout(timer); timer = setTimeout(() => filterEx(), 250); }
-        function filterEx() {
-            const q = document.getElementById('exQ').value.toLowerCase();
-            const l = document.getElementById('exList');
-            l.innerHTML = exData.filter(ex => ex.toLowerCase().includes(q)).map(ex => {
-                const [n, p] = ex.split('.'); const saved = exCals[n] || { reps: '', sets: '' };
-                return `<div class="p-3 bg-slate-50 rounded-xl flex justify-between items-center text-xs">
-                    <div><b>${n}</b><p class="text-[9px] text-slate-400">${p}</p></div>
-                    <div class="flex gap-1"><input type="number" value="${saved.reps}" oninput="calcEx('${n}','${p}',this.value,null)" class="w-12 p-1 text-center rounded bg-white border-none" placeholder="下">
-                    <input type="number" value="${saved.sets}" oninput="calcEx('${n}','${p}',null,this.value)" class="w-12 p-1 text-center rounded bg-white border-none" placeholder="組"></div>
-                </div>`;
-            }).join('');
-        }
         function calcEx(n, p, r, s) {
             if(!exCals[n]) exCals[n] = { reps: 0, sets: 0, cal: 0, part: p };
             if(r !== null) exCals[n].reps = parseInt(r) || 0;
             if(s !== null) exCals[n].sets = parseInt(s) || 0;
             exCals[n].cal = Math.round(exCals[n].reps * exCals[n].sets * 0.1);
-            updateExSummary();
+            updateSummary();
         }
-        function updateExSummary() {
-            let total = 0, parts = [];
-            for(let k in exCals) { 
-                total += exCals[k].cal; 
-                if(exCals[k].cal > 0) parts.push(`${k}(${exCals[k].part})`); 
-            }
-            document.getElementById('exSummary').innerText = parts.length ? `今日完成：${[...new Set(parts)].join('、')}，總共消耗 ${total} kcal` : "今日尚未有活動紀錄";
+
+        function updateSummary() {
+            let totalEx = 0, items = [];
+            const waterBonus = Math.floor(curWater / 250) * 25;
+            for(let k in exCals) { totalEx += exCals[k].cal; items.push(`${k}(${exCals[k].part})`); }
+            document.getElementById('sumBox').innerText = items.length ? `今日活動：${items.join('、')}。總消耗：${totalEx + waterBonus} kcal` : "尚未有活動紀錄";
         }
 
         function saveAll() {
             const cal = foods.reduce((s, f) => s + f.c, 0);
             let exT = 0; for(let k in exCals) exT += exCals[k].cal;
+            exT += Math.floor(curWater / 250) * 25; // 加入飲水紅利
             const data = { cal, foods, exT, exCals, water: curWater, w1: document.getElementById('w1').value, w2: document.getElementById('w2').value };
             localStorage.setItem('h_' + activeD, JSON.stringify(data));
             closeModal(); renderCal(); updateTop();
@@ -205,31 +178,27 @@
             document.getElementById('topW').innerText = (data.w1 || data.w2 || "--") + " kg";
             document.getElementById('topDate').innerText = new Date().toLocaleDateString('zh-TW', {month:'long', day:'numeric'});
             
-            // 智慧建議系統
             let advice = "";
-            if(rem > 1000) advice = "預算非常多！建議攝取優質蛋白質（雞胸、蛋）與優質澱粉（糙米、地瓜）來修復肌肉。";
-            else if(rem > 500) advice = "預算充足。建議增加膳食纖維（青菜）攝取，澱粉適量，避開含糖手搖飲。";
-            else if(rem > 150) advice = "預算收緊中。建議晚餐以清燙、水煮為主，減少油脂與調味料，嚴禁油炸食物。";
-            else if(rem > 0) advice = "預算即將用盡！建議只攝取低卡水果或無糖豆漿，並增加 20 分鐘步行來補償。";
-            else advice = "預算已超標！建議立即停止進食，多喝水代謝，並考慮增加打掃家務或散步來消耗餘熱。";
+            if(rem > 800) advice = "預算充足！建議補充蛋白質與澱粉，避免肌肉流失。";
+            else if(rem > 300) advice = "預算中等。建議多攝取蔬菜，避開油炸物。";
+            else advice = "預算快滿了！建議晚餐減量，嚴禁精緻澱粉與甜食。";
+            if(data.water < 1500) advice += " (提醒：水分不足會減緩代謝，請多喝水)";
             document.getElementById('topAdvice').innerText = advice;
         }
 
         function renderCal() {
             const body = document.getElementById('calendarBody'); body.innerHTML = '';
-            document.getElementById('monthTitle').innerText = `${currY} / ${currM + 1}`;
-            const first = new Date(currY, currM, 1).getDay();
             const days = new Date(currY, currM + 1, 0).getDate();
+            const first = new Date(currY, currM, 1).getDay();
             const today = new Date().toISOString().split('T')[0];
             for (let i = 0; i < first; i++) body.innerHTML += `<div></div>`;
             for (let d = 1; d <= days; d++) {
                 const ds = `${currY}-${String(currM + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                 const data = JSON.parse(localStorage.getItem('h_' + ds)) || {};
-                let cls = `day-cell p-2 cursor-pointer ${ds === today ? 'today-mark' : ''}`;
-                body.innerHTML += `<div class="${cls}" onclick="openModal('${ds}')">
+                body.innerHTML += `<div class="day-cell p-2 cursor-pointer ${ds === today ? 'today-mark' : ''}" onclick="openModal('${ds}')">
                     <span class="text-xs opacity-30 font-bold">${d}</span>
-                    <div class="text-[9px] font-black mt-1 text-slate-500">${data.cal || ''}</div>
-                    <div class="text-[8px] font-bold text-slate-300">${data.w2 || data.w1 || ''}</div>
+                    <div class="text-[9px] font-black text-slate-500 mt-1">${data.cal || ''}</div>
+                    <div class="text-[8px] font-bold text-slate-300">${data.w1 || data.w2 || ''}</div>
                     ${data.exT ? '<div class="dot"></div>' : ''}
                 </div>`;
             }
@@ -240,34 +209,53 @@
             const data = JSON.parse(localStorage.getItem('h_' + d)) || {};
             foods = data.foods || []; exCals = data.exCals || {}; curWater = data.water || 0;
             document.getElementById('w1').value = data.w1 || ''; document.getElementById('w2').value = data.w2 || '';
-            updateFoodUI(); addWater(0); updateExSummary(); filterEx();
+            updateFoodUI(); updateWater(0); filterEx();
             document.getElementById('recordModal').classList.add('active');
         }
 
         function closeModal() { document.getElementById('recordModal').classList.remove('active'); }
-        function changeMonth(s) { currM += s; if(currM>11){currM=0;currY++} if(currM<0){currM=11;currY--} renderCal(); }
+        function addF() {
+            const n = document.getElementById('fIn').value || "食物";
+            const c = parseInt(document.getElementById('cIn').value) || 0;
+            foods.push({n, c}); updateFoodUI();
+            document.getElementById('fIn').value = ""; document.getElementById('cIn').value = "";
+        }
+        function updateFoodUI() {
+            const l = document.getElementById('fList'); l.innerHTML = foods.map((f, i) => `<div class="flex justify-between bg-slate-50 p-2 rounded text-[10px]"><span>${f.n} <b>${f.c}k</b></span><button onclick="foods.splice(${i},1);updateFoodUI()">✕</button></div>`).join('');
+        }
+        function debounceEx() { clearTimeout(timer); timer = setTimeout(() => filterEx(), 250); }
+        function filterEx() {
+            const q = document.getElementById('exQ').value.toLowerCase();
+            const l = document.getElementById('exList');
+            l.innerHTML = exData.filter(ex => ex.toLowerCase().includes(q)).map(ex => {
+                const [n, p] = ex.split('.'); const saved = exCals[n] || { reps: '', sets: '' };
+                return `<div class="p-3 bg-slate-50 rounded-xl flex justify-between items-center text-xs">
+                    <div><b>${n}</b><p class="text-[9px] text-slate-400">${p}</p></div>
+                    <div class="flex gap-1"><input type="number" value="${saved.reps}" oninput="calcEx('${n}','${p}',this.value,null)" class="w-10 p-1 text-center rounded bg-white" placeholder="下">
+                    <input type="number" value="${saved.sets}" oninput="calcEx('${n}','${p}',null,this.value)" class="w-10 p-1 text-center rounded bg-white" placeholder="組"></div>
+                </div>`;
+            }).join('');
+        }
+        function showTrend() {
+            document.getElementById('trendModal').classList.add('active');
+            const labels = [], wData = [], cData = [];
+            for (let i = 1; i <= 31; i++) {
+                const ds = `${currY}-${String(currM + 1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+                const data = JSON.parse(localStorage.getItem('h_' + ds)) || {};
+                labels.push(i); wData.push(data.w1 || data.w2 || null); cData.push(data.cal || null);
+            }
+            if(wChart) wChart.destroy(); if(cChart) cChart.destroy();
+            wChart = new Chart(document.getElementById('weightChart'), { type: 'line', data: { labels, datasets: [{ label: '體重 (kg)', data: wData, borderColor: '#8fa3ad' }] } });
+            cChart = new Chart(document.getElementById('calorieChart'), { type: 'bar', data: { labels, datasets: [{ label: '熱量 (kcal)', data: cData, backgroundColor: '#d9c8a7' }] } });
+        }
+        function hideTrend() { document.getElementById('trendModal').classList.remove('active'); }
+        function changeMonth(s) { currM += s; renderCal(); }
         function debounceEst(v) { clearTimeout(timer); timer = setTimeout(() => {
             const b = document.getElementById('estBox'); b.innerHTML = ''; if(!v) return;
             Object.keys(dict).filter(k => k.includes(v)).forEach(k => {
                 b.innerHTML += `<div class="tag" onclick="document.getElementById('fIn').value='${k}';document.getElementById('cIn').value=${dict[k]};document.getElementById('estBox').innerHTML=''">${k}</div>`;
             });
         }, 250); }
-        function showTrend() {
-            document.getElementById('trendModal').classList.add('active');
-            const labels = [], wData = [], cData = [];
-            const days = new Date(currY, currM + 1, 0).getDate();
-            for (let i = 1; i <= days; i++) {
-                const ds = `${currY}-${String(currM + 1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-                const data = JSON.parse(localStorage.getItem('h_' + ds)) || {};
-                labels.push(i);
-                wData.push(data.w2 || data.w1 || null); 
-                cData.push(data.cal || null);
-            }
-            if(wChart) wChart.destroy(); if(cChart) cChart.destroy();
-            wChart = new Chart(document.getElementById('weightChart'), { type: 'line', data: { labels, datasets: [{ label: '體重趨勢 (kg)', data: wData, borderColor: '#8fa3ad', backgroundColor: 'rgba(143,163,173,0.1)', fill: true, tension: 0.3, spanGaps: true }] } });
-            cChart = new Chart(document.getElementById('calorieChart'), { type: 'bar', data: { labels, datasets: [{ label: '攝取熱量 (kcal)', data: cData, backgroundColor: '#d9c8a7' }] } });
-        }
-        function hideTrend() { document.getElementById('trendModal').classList.remove('active'); }
     </script>
 </body>
 </html>
