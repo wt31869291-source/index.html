@@ -3,308 +3,221 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>莫蘭迪健康筆記</title>
+    <title>高級莫蘭迪健康筆記 v6</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { 
-            --morandi-bg: #f2f4f5; 
-            --morandi-blue: #a3b8c2; 
-            --morandi-dark: #5e6d75; 
-            --morandi-accent: #d1bfa7;
-            --date-color: #4a5568;
-        }
-        body { background-color: var(--morandi-bg); font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; color: var(--morandi-dark); }
-        
-        /* 強化背景鎖定 */
-        .lock-screen { overflow: hidden !important; height: 100vh !important; }
-
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
-        .day-cell { min-height: 95px; background: #ffffff; border-radius: 12px; position: relative; transition: all 0.2s; border: 1px solid #e2e8f0; }
-        .today-mark { border: 2px solid var(--morandi-blue) !important; background: #f8fafc; }
-        
-        .period-dot { position: absolute; top: 8px; right: 8px; width: 6px; height: 6px; background: #e5a9a9; border-radius: 50%; }
-        .exercise-dot { position: absolute; top: 8px; right: 18px; width: 6px; height: 6px; background: #e9d5a1; border-radius: 50%; }
-
-        .modal-overlay { 
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); 
-            backdrop-filter: blur(8px); z-index: 999; justify-content: center; align-items: center; padding: 16px;
-        }
+        :root { --m-bg: #f4f6f7; --m-blue: #8fa3ad; --m-dark: #4a555c; }
+        body { background: var(--m-bg); font-family: sans-serif; color: var(--m-dark); }
+        .lock-screen { overflow: hidden !important; height: 100vh !important; position: fixed; width: 100%; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+        .day-cell { min-height: 90px; background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; position: relative; }
+        .today-mark { border: 2px solid var(--m-blue) !important; background: #fdfdfd; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; position: absolute; top: 8px; }
+        .p-dot { background: #d9a7a7; right: 8px; }
+        .e-dot { background: #d9c8a7; right: 18px; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(5px); z-index: 999; justify-content: center; align-items: flex-end; }
         .modal-overlay.active { display: flex; }
-        .modal-content { 
-            background: #ffffff; width: 100%; max-width: 420px; border-radius: 24px; 
-            display: flex; flex-direction: column; max-height: 90vh; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
-        }
-        .estimate-tag { 
-            cursor: pointer; background: #f1f5f9; color: #64748b; padding: 4px 12px; 
-            border-radius: 8px; font-size: 11px; margin: 4px; border: 1px solid #e2e8f0;
-        }
-        input:focus { outline: none; border-color: var(--morandi-blue) !important; }
+        .modal-content { background: #fff; width: 100%; max-width: 450px; border-radius: 24px 24px 0 0; height: 85vh; display: flex; flex-direction: column; }
+        .tag { cursor: pointer; background: #f1f5f9; padding: 4px 10px; border-radius: 8px; font-size: 11px; margin: 2px; border: 1px solid #e2e8f0; }
     </style>
 </head>
 <body>
 
-    <div class="max-w-md mx-auto min-h-screen pb-10">
-        <div class="p-8 pt-12 text-white bg-slate-500 rounded-b-[40px] shadow-lg" style="background-color: #7a8d99;">
-            <div class="flex justify-between items-end mb-8">
-                <div>
-                    <h1 class="text-xl font-medium tracking-widest opacity-80 uppercase">Daily Log</h1>
-                    <p id="topDate" class="text-sm font-light mt-1"></p>
-                </div>
-                <div class="text-right">
-                    <p class="text-[10px] tracking-widest opacity-60">CURRENT WEIGHT</p>
-                    <p id="topWeight" class="text-3xl font-light tracking-tighter">--<span class="text-sm ml-1">kg</span></p>
-                </div>
+    <div class="max-w-md mx-auto min-h-screen pb-6">
+        <div class="p-8 text-white rounded-b-[40px] shadow-lg" style="background: #6a7c85;">
+            <div class="flex justify-between items-end mb-6">
+                <div><h1 class="text-xl tracking-widest opacity-80">HEALTH LOG</h1><p id="topDate" class="text-xs"></p></div>
+                <div class="text-right"><p class="text-[10px] opacity-60">CURRENT</p><p id="topW" class="text-3xl font-light">--</p></div>
             </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl">
-                    <p class="text-[10px] opacity-70 mb-1">REMAINING KCAL</p>
-                    <p id="topRemain" class="text-xl font-semibold">--</p>
-                </div>
-                <div class="flex items-center text-xs font-light leading-relaxed px-2">
-                    <span id="topAdvice">沉穩記錄，規律生活。</span>
-                </div>
+            <div class="grid grid-cols-2 gap-4 text-center">
+                <div class="bg-white/10 p-3 rounded-xl"><p class="text-[10px] opacity-70">剩餘預算</p><p id="topRem" class="text-lg font-bold">--</p></div>
+                <div class="bg-white/10 p-3 rounded-xl"><p class="text-[10px] opacity-70">運動消耗</p><p id="topExCal" class="text-lg font-bold">0</p></div>
             </div>
         </div>
 
-        <div class="p-6">
-            <div class="flex justify-between items-center mb-6">
-                <button onclick="changeMonth(-1)" class="w-8 h-8 flex items-center justify-center text-slate-400">〈</button>
-                <h2 id="monthTitle" class="text-lg font-medium text-slate-600 tracking-widest"></h2>
-                <button onclick="changeMonth(1)" class="w-8 h-8 flex items-center justify-center text-slate-400">〉</button>
+        <div class="p-4">
+            <div class="flex justify-between items-center mb-6 px-2">
+                <button onclick="changeMonth(-1)">〈</button>
+                <h2 id="monthTitle" class="font-medium tracking-widest"></h2>
+                <button onclick="changeMonth(1)">〉</button>
             </div>
-            <div class="calendar-grid text-center text-[10px] font-medium text-slate-400 mb-4 tracking-tighter">
+            <div class="calendar-grid text-center text-[10px] text-slate-400 mb-2">
                 <div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div>
             </div>
             <div id="calendarBody" class="calendar-grid"></div>
         </div>
     </div>
 
-    <div id="recordModal" class="modal-overlay" onclick="handleOverlayClick(event)">
-        <div class="modal-content animate-in fade-in zoom-in duration-200" onclick="event.stopPropagation()">
-            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
-                <h3 id="modalDateTitle" class="text-lg font-medium text-slate-600"></h3>
-                <button onclick="closeModal()" class="text-slate-300 hover:text-slate-500 text-xl">✕</button>
+    <div id="recordModal" class="modal-overlay" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="p-6 border-b flex justify-between items-center">
+                <h3 id="modalDateTitle" class="font-medium">日期紀錄</h3>
+                <button onclick="closeModal()" class="text-slate-300 text-xl">✕</button>
             </div>
             
-            <div class="flex-1 overflow-y-auto p-6 space-y-8">
-                <div class="space-y-4">
-                    <div class="flex justify-between items-center">
-                        <label class="text-sm font-medium text-slate-500 tracking-wider">DIET / 飲食紀錄</label>
-                        <span id="modalTotal" class="text-lg font-semibold text-slate-600">0</span>
-                    </div>
+            <div class="flex-1 overflow-y-auto p-6 space-y-8" id="modalScrollArea">
+                <div class="space-y-3">
+                    <div class="flex justify-between"><label class="text-sm font-bold">🍕 飲食 (含好市多/家常)</label><span id="foodSum" class="font-bold">0</span></div>
                     <div class="flex gap-2">
-                        <input type="text" id="foodIn" oninput="showEst(this.value)" placeholder="輸入食物關鍵字..." class="flex-1 p-3 bg-slate-50 rounded-xl text-sm border border-transparent">
-                        <input type="number" id="calIn" placeholder="kcal" class="w-20 p-3 bg-slate-50 rounded-xl text-sm border border-transparent">
-                        <button onclick="addFood()" class="bg-slate-400 text-white px-4 rounded-xl text-sm">ADD</button>
+                        <input type="text" id="fIn" oninput="debounceEst(this.value)" placeholder="輸入食物..." class="flex-1 p-3 bg-slate-50 rounded-xl text-sm border-none">
+                        <input type="number" id="cIn" placeholder="kcal" class="w-20 p-3 bg-slate-50 rounded-xl text-sm border-none">
+                        <button onclick="addF()" class="bg-slate-400 text-white px-4 rounded-xl text-sm">加</button>
                     </div>
                     <div id="estBox" class="flex flex-wrap"></div>
-                    <div id="foodList" class="space-y-2"></div>
+                    <div id="fList" class="space-y-2"></div>
                 </div>
 
-                <div class="space-y-4">
-                    <label class="text-sm font-medium text-slate-500 tracking-wider">WEIGHT / 體重 (可自訂標籤)</label>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="p-3 bg-slate-50 rounded-2xl">
-                            <input type="text" id="w1Label" value="起床空腹" class="w-full bg-transparent text-[10px] text-slate-400 mb-1 focus:text-slate-600">
-                            <input type="number" step="0.1" id="w1" placeholder="0.0" class="w-full bg-transparent text-xl font-medium text-slate-600 text-center">
+                <div class="space-y-3">
+                    <label class="text-sm font-bold">⚖️ 體重 (標籤可改)</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="p-3 bg-slate-50 rounded-xl">
+                            <input type="text" id="w1L" value="起床空腹" class="w-full bg-transparent text-[10px] text-slate-400 mb-1">
+                            <input type="number" step="0.1" id="w1" class="w-full bg-transparent text-xl font-bold text-center">
                         </div>
-                        <div class="p-3 bg-slate-50 rounded-2xl">
-                            <input type="text" id="w2Label" value="睡前紀錄" class="w-full bg-transparent text-[10px] text-slate-400 mb-1 focus:text-slate-600">
-                            <input type="number" step="0.1" id="w2" placeholder="0.0" class="w-full bg-transparent text-xl font-medium text-slate-600 text-center">
+                        <div class="p-3 bg-slate-50 rounded-xl">
+                            <input type="text" id="w2L" value="睡前紀錄" class="w-full bg-transparent text-[10px] text-slate-400 mb-1">
+                            <input type="number" step="0.1" id="w2" class="w-full bg-transparent text-xl font-bold text-center">
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="p-4 bg-slate-50 rounded-2xl flex justify-between items-center">
-                        <span class="text-xs text-slate-500">生理期</span>
-                        <input type="checkbox" id="pCheck" class="w-5 h-5 accent-slate-400">
-                    </div>
-                    <div class="p-4 bg-slate-50 rounded-2xl flex justify-between items-center">
-                        <span class="text-xs text-slate-500">飲水 (ml)</span>
-                        <input type="number" id="water" class="w-12 bg-transparent text-right font-medium text-slate-600">
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <label class="text-sm font-medium text-slate-500 tracking-wider">EXERCISE / 運動</label>
-                    <input type="text" id="exSearch" oninput="filterEx()" placeholder="搜尋運動部位..." class="w-full p-3 bg-slate-50 rounded-xl text-sm border border-transparent">
-                    <div id="exList" class="grid grid-cols-1 gap-2"></div>
+                <div class="space-y-3">
+                    <div class="flex justify-between"><label class="text-sm font-bold">🏃 運動 (自動計算消耗)</label><span id="exSum" class="text-orange-400 font-bold">0 kcal</span></div>
+                    <input type="text" id="exQ" oninput="debounceEx()" placeholder="搜尋動作..." class="w-full p-3 bg-slate-50 rounded-xl text-sm border-none">
+                    <div id="exList" class="space-y-2"></div>
                 </div>
             </div>
             
-            <div class="p-6">
-                <button onclick="saveAll()" class="w-full bg-slate-500 text-white py-4 rounded-2xl font-medium tracking-widest shadow-lg shadow-slate-200">SAVE DATA</button>
-            </div>
+            <div class="p-6"><button onclick="saveAll()" class="w-full bg-slate-500 text-white py-4 rounded-2xl font-bold">儲存數據</button></div>
         </div>
     </div>
 
     <script>
-        let currYear, currMonth, activeDate = "", foods = [];
-        
-        // 擴大食物字典
+        let currY, currM, activeD = "", foods = [], exCals = {}, timer;
         const dict = {
-            "鍋貼":60,"水煎包":300,"肉圓":350,"燒餅油條":500,"飯糰":450,"蚵仔煎":500,"大麥克":530,"中薯":330,"雞塊":200,"排骨飯":850,"雞肉飯":450,"珍奶":650,"雞排":750,"蛋餅":300,"三明治":350,"漢堡":450,"卡拉雞堡":650,"起司蛋糕":350,"菠蘿麵包":400,"吐司":150,"拿鐵":150,"炒飯":750,"炒麵":500,"酸辣湯":200,"牛肉麵":650,"義大利麵":600,"凱撒沙拉":350,"壽司(貫)":50,"火鍋":1000,"便當":800,"地瓜":150,"雞胸肉":160,"香蕉":90,"水餃":50,"甜甜圈":300,"熱狗":250,"薯餅":150,"蛋塔":250,"泡麵":450,"肉粽":500,"饅頭":280
+            "好市多瑪芬":650, "好市多雞肉卷":820, "排骨麵":650, "鍋燒雞絲麵":550, "家常炒青菜":150, "家常炒肉片":300, "家常煎魚":250, "家常滷肉":350,
+            "鍋貼":60, "大麥克":530, "珍奶":650, "雞排":750, "蛋餅":300, "三明治":350, "漢堡":450, "拿鐵":150, "牛肉麵":650, "火鍋":1000, "便當":800, "地瓜":150, "雞胸肉":160, "水餃":50
         };
-
-        const exData = ["啞鈴負重深蹲.腿臀","啞鈴夾胸.胸","啞鈴划船.背","左右側抬腿.腿","跪式前後俯臥撐.腹","俯臥後抬腿.臀","腳心開合.腿","跪姿左右抬腿.腰腹","跪姿後抬腿(直).下臀","跪姿彎曲抬腿.上臀","啞鈴w外推.手臂","臀橋.臀","啞鈴側平舉.肩","啞鈴硬拉.臀","彈力帶前後繞肩.肩背","彈力帶高位下拉.肩背","彈力帶左右側拉.手胸","左右腿分蹲.臀","腳尖交叉點地.腹","交替收腿.腹","屈膝捲腹.腹","直腿捲腹.腹","自行車捲腹.腹","剪刀腿.腹"];
+        const exMap = { "腿": 0.1, "胸": 0.08, "背": 0.09, "腹": 0.05, "臀": 0.1, "臂": 0.05, "肩": 0.06 }; 
+        const exData = ["啞鈴負重深蹲.腿臀","啞鈴夾胸.胸","啞鈴划船.背","左右側抬腿.腿","跪式前後俯臥撐.腹","俯臥後抬腿.臀","腳心開合.腿","跪姿左右抬腿.腰腹","跪姿後抬腿(直).下臀","跪姿彎曲抬腿.上臀","啞鈴w外推.臂","臀橋.臀","啞鈴側平舉.肩","啞鈴硬拉.臀","彈力帶前後繞肩.肩背","彈力帶高位下拉.肩背","彈力帶左右側拉.胸","左右腿分蹲.臀","腳尖交叉點地.腹","交替收腿.腹","屈膝捲腹.腹","直腿捲腹.腹","自行車捲腹.腹","剪刀腿.腹"];
 
         window.onload = () => {
-            const now = new Date();
-            currYear = now.getFullYear();
-            currMonth = now.getMonth();
-            renderCal();
-            updateTop();
+            const n = new Date(); currY = n.getFullYear(); currM = n.getMonth();
+            renderCal(); updateTop();
         };
 
-        function renderCal() {
-            const body = document.getElementById('calendarBody');
-            body.innerHTML = '';
-            document.getElementById('monthTitle').innerText = `${currYear} / ${currMonth + 1}`;
-            document.getElementById('topDate').innerText = new Date().toDateString();
-            
-            const first = new Date(currYear, currMonth, 1).getDay();
-            const days = new Date(currYear, currMonth + 1, 0).getDate();
-            const periodS = localStorage.getItem('p_start');
-            const todayStr = new Date().toISOString().split('T')[0];
-
-            for (let i = 0; i < first; i++) body.innerHTML += `<div></div>`;
-
-            for (let d = 1; d <= days; d++) {
-                const ds = `${currYear}-${String(currMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                const data = JSON.parse(localStorage.getItem('h_' + ds));
-                let cls = 'day-cell p-3 cursor-pointer';
-                if(ds === todayStr) cls += ' today-mark';
-                
-                let dot = '';
-                if(periodS) {
-                    const diff = (new Date(ds) - new Date(periodS)) / 86400000;
-                    if(diff >= 0 && diff < 7) dot += `<div class="period-dot"></div>`;
-                }
-                if(data && data.ex) dot += `<div class="exercise-dot"></div>`;
-
-                body.innerHTML += `<div class="${cls}" onclick="openModal('${ds}')">
-                    <span class="text-xs font-bold text-slate-400">${d}</span>
-                    ${data && data.cal ? `<div class="text-[9px] text-slate-500 font-bold mt-2">${data.cal}k</div>` : ''}
-                    ${data && data.w1 ? `<div class="text-[9px] text-slate-300 font-medium mt-1">${data.w1}</div>` : ''}
-                    ${dot}
-                </div>`;
-            }
-        }
-
-        function openModal(date) {
-            activeDate = date;
-            document.getElementById('modalDateTitle').innerText = date;
-            const data = JSON.parse(localStorage.getItem('h_' + date)) || {};
-            
-            document.getElementById('w1').value = data.w1 || '';
-            document.getElementById('w2').value = data.w2 || '';
-            document.getElementById('w1Label').value = data.w1L || '起床空腹';
-            document.getElementById('w2Label').value = data.w2L || '睡前紀錄';
-            document.getElementById('water').value = data.water || '';
-            document.getElementById('pCheck').checked = (localStorage.getItem('p_start') === date);
-            foods = data.foods || [];
-            
-            updateFoodUI();
-            filterEx();
-            document.getElementById('recordModal').classList.add('active');
-            document.body.classList.add('lock-screen'); // 強力鎖定背景
-        }
-
-        function closeModal() {
-            document.getElementById('recordModal').classList.remove('active');
-            document.body.classList.remove('lock-screen');
-            activeDate = "";
-        }
-
-        function handleOverlayClick(e) { if(e.target.id === 'recordModal') closeModal(); }
+        function debounceEst(v) { clearTimeout(timer); timer = setTimeout(() => showEst(v), 200); }
+        function debounceEx() { clearTimeout(timer); timer = setTimeout(() => filterEx(), 200); }
 
         function showEst(v) {
-            const b = document.getElementById('estBox');
-            b.innerHTML = '';
+            const b = document.getElementById('estBox'); b.innerHTML = '';
             if(!v) return;
-            Object.keys(dict).filter(k => k.includes(v)).slice(0, 6).forEach(k => {
-                b.innerHTML += `<div class="estimate-tag" onclick="useEst('${k}', ${dict[k]})">${k} ${dict[k]}k</div>`;
+            Object.keys(dict).filter(k => k.includes(v)).forEach(k => {
+                b.innerHTML += `<div class="tag" onclick="useEst('${k}', ${dict[k]})">${k} ${dict[k]}k</div>`;
             });
         }
 
-        function useEst(n, c) {
-            document.getElementById('foodIn').value = n;
-            document.getElementById('calIn').value = c;
-            document.getElementById('estBox').innerHTML = '';
-        }
+        function useEst(n, c) { document.getElementById('fIn').value = n; document.getElementById('cIn').value = c; document.getElementById('estBox').innerHTML = ''; }
 
-        function addFood() {
-            const n = document.getElementById('foodIn').value || "未命名";
-            const c = parseInt(document.getElementById('calIn').value) || 0;
-            foods.push({n, c});
-            document.getElementById('foodIn').value = "";
-            document.getElementById('calIn').value = "";
-            updateFoodUI();
+        function addF() {
+            const n = document.getElementById('fIn').value || "未命名";
+            const c = parseInt(document.getElementById('cIn').value) || 0;
+            foods.push({n, c}); updateFoodUI();
         }
 
         function updateFoodUI() {
-            const l = document.getElementById('foodList');
-            let t = 0;
-            l.innerHTML = foods.map((f, i) => {
-                t += f.c;
-                return `<div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl text-xs">
-                    <span>${f.n} <b class="ml-2">${f.c}k</b></span>
-                    <button onclick="foods.splice(${i},1); updateFoodUI()" class="text-slate-300">✕</button>
-                </div>`;
-            }).join('');
-            document.getElementById('modalTotal').innerText = t;
+            const l = document.getElementById('fList'); let t = 0;
+            l.innerHTML = foods.map((f, i) => { t += f.c; return `<div class="flex justify-between bg-slate-50 p-2 rounded-lg text-xs"><span>${f.n} ${f.c}k</span><button onclick="foods.splice(${i},1);updateFoodUI()">✕</button></div>`; }).join('');
+            document.getElementById('foodSum').innerText = t;
         }
 
         function filterEx() {
-            const q = document.getElementById('exSearch').value.toLowerCase();
+            const q = document.getElementById('exQ').value.toLowerCase();
             const l = document.getElementById('exList');
             l.innerHTML = exData.filter(ex => ex.toLowerCase().includes(q)).map(ex => {
                 const [n, p] = ex.split('.');
-                return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl">
-                    <div class="text-[10px]"><b class="text-slate-600">${n}</b><br><span class="text-slate-300 uppercase">${p}</span></div>
-                    <input type="number" placeholder="組" class="w-10 bg-white rounded border-none text-center text-xs p-1">
+                const saved = exCals[n] || { reps: '', sets: '' };
+                return `<div class="p-3 bg-slate-50 rounded-xl flex justify-between items-center">
+                    <div class="text-[10px]"><b>${n}</b><br><span class="opacity-50">${p}</span></div>
+                    <div class="flex gap-1 text-xs">
+                        <input type="number" value="${saved.reps}" oninput="calcEx('${n}', '${p}', this.value, null)" placeholder="下" class="w-10 p-1 text-center rounded">
+                        <span>x</span>
+                        <input type="number" value="${saved.sets}" oninput="calcEx('${n}', '${p}', null, this.value)" placeholder="組" class="w-10 p-1 text-center rounded">
+                    </div>
                 </div>`;
             }).join('');
+        }
+
+        function calcEx(name, part, reps, sets) {
+            if(!exCals[name]) exCals[name] = { reps: 0, sets: 0, cal: 0 };
+            if(reps !== null) exCals[name].reps = parseInt(reps) || 0;
+            if(sets !== null) exCals[name].sets = parseInt(sets) || 0;
+            
+            let factor = 0.05;
+            for(let key in exMap) { if(part.includes(key)) factor = exMap[key]; }
+            exCals[name].cal = Math.round(exCals[name].reps * exCals[name].sets * factor);
+            
+            let total = 0;
+            for(let k in exCals) { total += exCals[k].cal; }
+            document.getElementById('exSum').innerText = total + " kcal";
         }
 
         function saveAll() {
             const cal = foods.reduce((s, f) => s + f.c, 0);
-            const data = {
-                cal, foods,
-                w1: document.getElementById('w1').value,
-                w2: document.getElementById('w2').value,
-                w1L: document.getElementById('w1Label').value,
-                w2L: document.getElementById('w2Label').value,
-                water: document.getElementById('water').value,
-                ex: (document.getElementById('exSearch').value !== "")
-            };
-            localStorage.setItem('h_' + activeDate, JSON.stringify(data));
-            if(document.getElementById('pCheck').checked) localStorage.setItem('p_start', activeDate);
-            else if(localStorage.getItem('p_start') === activeDate) localStorage.removeItem('p_start');
+            let exT = 0; for(let k in exCals) exT += exCals[k].cal;
+            const data = { cal, foods, exT, exCals, w1: document.getElementById('w1').value, w2: document.getElementById('w2').value, w1L: document.getElementById('w1L').value, w2L: document.getElementById('w2L').value };
+            localStorage.setItem('h_' + activeD, JSON.stringify(data));
             closeModal(); renderCal(); updateTop();
         }
+
+        function renderCal() {
+            const body = document.getElementById('calendarBody'); body.innerHTML = '';
+            document.getElementById('monthTitle').innerText = `${currY} / ${currM + 1}`;
+            const first = new Date(currY, currM, 1).getDay();
+            const days = new Date(currY, currM + 1, 0).getDate();
+            const today = new Date().toISOString().split('T')[0];
+
+            for (let i = 0; i < first; i++) body.innerHTML += `<div></div>`;
+            for (let d = 1; d <= days; d++) {
+                const ds = `${currY}-${String(currM + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const data = JSON.parse(localStorage.getItem('h_' + ds));
+                let cls = 'day-cell p-2 cursor-pointer'; if(ds === today) cls += ' today-mark';
+                let dots = '';
+                if(data && data.exT > 0) dots += `<div class="dot e-dot"></div>`;
+                body.innerHTML += `<div class="${cls}" onclick="openModal('${ds}')">
+                    <span class="text-xs opacity-40">${d}</span>
+                    ${data && data.cal ? `<div class="text-[9px] font-bold mt-1 text-slate-500">${data.cal}k</div>` : ''}
+                    ${data && data.w1 ? `<div class="text-[8px] opacity-30">${data.w1}</div>` : ''}
+                    ${dots}
+                </div>`;
+            }
+        }
+
+        function openModal(d) {
+            activeD = d; document.getElementById('modalDateTitle').innerText = d;
+            const data = JSON.parse(localStorage.getItem('h_' + d)) || {};
+            foods = data.foods || []; exCals = data.exCals || {};
+            document.getElementById('w1').value = data.w1 || ''; document.getElementById('w2').value = data.w2 || '';
+            document.getElementById('w1L').value = data.w1L || '起床空腹'; document.getElementById('w2L').value = data.w2L || '睡前紀錄';
+            updateFoodUI(); filterEx(); 
+            let totalEx = 0; for(let k in exCals) totalEx += exCals[k].cal;
+            document.getElementById('exSum').innerText = totalEx + " kcal";
+            document.getElementById('recordModal').classList.add('active');
+            document.body.classList.add('lock-screen');
+        }
+
+        function closeModal() { document.getElementById('recordModal').classList.remove('active'); document.body.classList.remove('lock-screen'); }
 
         function updateTop() {
             const today = new Date().toISOString().split('T')[0];
             const data = JSON.parse(localStorage.getItem('h_' + today)) || {};
-            const pS = localStorage.getItem('p_start');
-            let tdee = 1800;
-            if(pS) {
-                const diff = (new Date(today) - new Date(pS)) / 86400000;
-                if(diff >= 0 && diff < 7) tdee += 200;
-            }
-            const rem = tdee - (data.cal || 0);
-            document.getElementById('topRemain').innerText = rem + " kcal";
-            document.getElementById('topWeight').innerHTML = (data.w1 || "--") + "<span class='text-sm ml-1'>kg</span>";
+            const rem = 1800 - (data.cal || 0) + (data.exT || 0);
+            document.getElementById('topRem').innerText = rem + " k";
+            document.getElementById('topExCal').innerText = (data.exT || 0);
+            document.getElementById('topW').innerText = (data.w1 || "--") + "kg";
         }
 
-        function changeMonth(s) {
-            currMonth += s;
-            if(currMonth > 11) { currMonth = 0; currYear++; }
-            if(currMonth < 0) { currMonth = 11; currYear--; }
-            renderCal();
-        }
+        function changeMonth(s) { currM += s; if(currM>11){currM=0;currY++} if(currM<0){currM=11;currY--} renderCal(); }
     </script>
 </body>
 </html>
