@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>健康筆記 v30 - 穩定全屏版</title>
+    <title>健康筆記 v31 - 數據可視化版</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --m-bg: #f4f6f7; --m-blue: #8fa3ad; --m-dark: #4a555c; }
         body { background: var(--m-bg); font-family: sans-serif; color: var(--m-dark); }
-        /* 全螢幕覆蓋，防止誤觸後方月曆 */
         .full-page-modal { display: none; position: fixed; inset: 0; background: white; z-index: 9999; flex-direction: column; overflow-y: auto; }
         .full-page-modal.active { display: flex; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
-        .day-cell { min-height: 100px; background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; position: relative; cursor: pointer; }
-        .today-mark { border: 2.5px solid var(--m-blue) !important; background: #fcfdfe; }
-        .btn-step { background: #f1f5f9; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 1px solid #e2e8f0; }
-        .advice-box { padding: 15px; border-radius: 15px; font-size: 13px; font-weight: bold; margin-bottom: 15px; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+        .day-cell { min-height: 110px; background: #fff; border-radius: 12px; border: 1px solid #eef2f6; position: relative; cursor: pointer; display: flex; flex-direction: column; padding: 4px; }
+        .today-mark { border: 2px solid var(--m-blue) !important; background: #fcfdfe; }
+        .data-label { font-size: 9px; line-height: 1; transform: scale(0.9); margin-top: 1px; font-weight: bold; }
+        .btn-step { background: #f1f5f9; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 1px solid #e2e8f0; }
+        .advice-box { padding: 12px; border-radius: 12px; font-size: 13px; font-weight: bold; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -27,17 +28,20 @@
                     <h1 class="text-xl tracking-widest font-medium">HEALTH LOG</h1>
                     <p id="topDate" class="text-[10px] opacity-70 mt-1"></p>
                 </div>
-                <div class="text-right">
-                    <p class="text-[10px] opacity-70 mb-1">目前體重</p>
-                    <p id="topW" class="text-4xl font-light">--</p>
+                <div class="text-right cursor-pointer" onclick="showTrend('w')">
+                    <p class="text-[10px] opacity-70 mb-1">目前體重 (看趨勢)</p>
+                    <p id="topW" class="text-4xl font-light tracking-tighter">--</p>
                 </div>
             </div>
-            <div id="adviceBanner" class="bg-black/10 p-3 rounded-2xl mb-4 text-[12px] border-l-4 border-white/50">
-                正在計算今日建議...
-            </div>
             <div class="grid grid-cols-2 gap-4 text-center">
-                <div class="bg-white/10 p-3 rounded-2xl"><p class="text-[10px] opacity-80 mb-1 font-bold">攝取</p><p id="topIn" class="text-lg font-bold">0</p></div>
-                <div class="bg-white/10 p-3 rounded-2xl"><p class="text-[10px] opacity-80 mb-1 font-bold">運動</p><p id="topEx" class="text-lg font-bold">0</p></div>
+                <div class="bg-white/10 p-3 rounded-2xl cursor-pointer" onclick="showIntakePie()">
+                    <p class="text-[10px] opacity-80 mb-1 font-bold">攝取 (圓餅圖)</p>
+                    <p id="topIn" class="text-lg font-bold">0</p>
+                </div>
+                <div class="bg-white/10 p-3 rounded-2xl cursor-pointer" onclick="showTrend('ex')">
+                    <p class="text-[10px] opacity-80 mb-1 font-bold">運動消耗</p>
+                    <p id="topEx" class="text-lg font-bold">0</p>
+                </div>
             </div>
         </div>
 
@@ -46,62 +50,71 @@
         </div>
     </div>
 
+    <div id="trendModal" class="fixed inset-0 bg-white z-[10000] hidden flex-col p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h3 id="trendTitle" class="font-bold text-slate-600">數據分析</h3>
+            <button onclick="hideTrend()" class="text-3xl text-slate-300 px-4">✕</button>
+        </div>
+        <div class="flex-1 flex items-center justify-center">
+            <canvas id="chartCanvas"></canvas>
+        </div>
+    </div>
+
     <div id="recordModal" class="full-page-modal">
-        <div class="p-6 border-b flex justify-between items-center bg-white sticky top-0 z-[10000]">
-            <h3 id="modalDateTitle" class="font-bold text-slate-600 text-lg">編輯紀錄</h3>
+        <div class="p-6 border-b flex justify-between items-center bg-white sticky top-0 z-[10001]">
+            <h3 id="modalDateTitle" class="font-bold text-slate-600">數據錄入</h3>
             <button onclick="closeModal()" class="text-slate-400 text-2xl px-4">✕</button>
         </div>
         
         <div class="p-6 space-y-8 pb-32">
+            <div id="dynamicAdvice" class="advice-box text-center"></div>
+
             <div class="space-y-3">
-                <label class="text-sm font-bold text-slate-500">🍕 飲食與 AI 建議</label>
-                <div id="dynamicAdvice" class="advice-box"></div>
+                <label class="text-sm font-bold text-slate-500">🍕 飲食紀錄</label>
                 <div class="flex gap-2">
-                    <input type="text" id="fIn" oninput="debounceFood(this.value)" placeholder="搜尋家常菜..." class="flex-1 p-4 bg-slate-50 rounded-xl outline-none">
+                    <input type="text" id="fIn" oninput="debounceFood(this.value)" placeholder="搜尋食物..." class="flex-1 p-4 bg-slate-50 rounded-xl outline-none">
                     <input type="number" id="cIn" placeholder="kcal" class="w-24 p-4 bg-slate-50 rounded-xl outline-none">
-                    <button onclick="addF()" class="bg-slate-500 text-white px-5 rounded-xl font-bold">加</button>
+                    <button onclick="addF()" class="bg-slate-500 text-white px-5 rounded-xl font-bold">＋</button>
                 </div>
                 <div id="estBox" class="flex flex-wrap gap-1"></div>
                 <div id="fList" class="space-y-2 mt-2"></div>
             </div>
 
-            <div class="grid grid-cols-1 gap-4">
-                <div class="p-4 bg-blue-50/50 rounded-2xl">
-                    <label class="text-[11px] font-bold text-blue-400">💧 飲水量 (ml)</label>
-                    <input type="number" id="waterIn" class="w-full bg-transparent text-2xl font-bold text-blue-500 border-none outline-none" placeholder="0">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="p-4 bg-slate-50 rounded-2xl"><label class="text-[11px] text-slate-400">AM 空腹體重</label><input type="number" step="0.1" id="w1" class="w-full bg-transparent font-bold text-lg outline-none" placeholder="0.0"></div>
-                    <div class="p-4 bg-slate-50 rounded-2xl"><label class="text-[11px] text-slate-400">PM 睡前體重</label><input type="number" step="0.1" id="w2" class="w-full bg-transparent font-bold text-lg outline-none" placeholder="0.0"></div>
-                </div>
+            <div class="p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+                <label class="text-[11px] font-bold text-blue-400">💧 飲水量 (ml)</label>
+                <input type="number" id="waterIn" class="w-full bg-transparent text-2xl font-bold text-blue-500 border-none outline-none" placeholder="0">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="p-4 bg-slate-50 rounded-2xl"><label class="text-[11px] text-slate-400 font-bold">AM 空腹體重</label><input type="number" step="0.1" id="w1" class="w-full bg-transparent font-bold text-lg outline-none" placeholder="0.0"></div>
+                <div class="p-4 bg-slate-50 rounded-2xl"><label class="text-[11px] text-slate-400 font-bold">PM 睡前體重</label><input type="number" step="0.1" id="w2" class="w-full bg-transparent font-bold text-lg outline-none" placeholder="0.0"></div>
             </div>
 
             <div class="space-y-4">
-                <label class="text-sm font-bold text-slate-500">🏃 運動清單 (不跳動設計)</label>
+                <label class="text-sm font-bold text-slate-500">🏃 運動項目</label>
                 <div id="exSelectedList" class="space-y-3"></div>
                 <div class="flex gap-2">
-                    <input type="text" id="exSearch" oninput="searchEx(this.value)" placeholder="搜尋或自訂動作..." class="flex-1 p-4 bg-slate-100 rounded-xl outline-none">
-                    <button onclick="pickEx(document.getElementById('exSearch').value, true)" class="bg-slate-400 text-white px-4 rounded-xl text-xs">新增</button>
+                    <input type="text" id="exSearch" oninput="searchEx(this.value)" placeholder="搜尋或直接輸入名稱..." class="flex-1 p-4 bg-slate-100 rounded-xl outline-none">
+                    <button onclick="pickEx(document.getElementById('exSearch').value, true)" class="bg-slate-400 text-white px-4 rounded-xl text-xs">自訂</button>
                 </div>
                 <div id="exSearchResults" class="bg-white border rounded-xl hidden max-h-40 overflow-y-auto"></div>
             </div>
         </div>
 
         <div class="fixed bottom-0 left-0 right-0 p-6 bg-white border-t">
-            <button onclick="saveAll()" class="w-full bg-slate-700 text-white py-5 rounded-2xl font-bold shadow-xl">確認儲存</button>
+            <button onclick="saveAll()" class="w-full bg-slate-700 text-white py-5 rounded-2xl font-bold shadow-xl active:scale-95 transition-all">確認儲存</button>
         </div>
     </div>
 
     <script>
-        let currY, currM, activeD = "", foods = [], exSelected = {};
-        const foodDict = { "白飯":200, "牛肉麵":650, "滷肉飯":450, "雞絲麵":400, "三明治":300, "炒飯":700, "雞蛋":75, "炒青菜":100 };
+        let currY, currM, activeD = "", foods = [], exSelected = {}, myChart;
+        const foodDict = { "白飯":200, "牛肉麵":650, "滷肉飯":450, "雞絲麵":400, "三明治":300, "雞蛋":75, "炒青菜":100 };
         const exLib = {
             "啞鈴負重深蹲(臀腿)": 0.1, "啞鈴夾胸(胸)": 0.1, "啞鈴划船(背)": 0.1, "左右側抬腿(腿)": 0.08,
             "跪式前後俯臥撐(腹)": 0.1, "俯臥後抬腿(臀)": 0.08, "腳心開合(腿)": 0.08, "跪姿左右抬腿(腰腹)": 0.08,
             "跪姿後抬腿直(下臀)": 0.08, "跪姿彎曲抬腿(上臀)": 0.08, "啞鈴w型外推(手臂)": 0.1, "臀橋(臀)": 0.1,
             "啞鈴側平舉(肩)": 0.1, "啞鈴硬拉(臀)": 0.1, "彈力帶前後繞肩(肩背)": 0.05, "彈力帶高位下拉(肩背)": 0.05,
             "彈力帶左右側拉(手胸)": 0.05, "左右腿分蹲(臀)": 0.1, "腳尖交叉點地(腹)": 0.08, "交替收腿(腹)": 0.08,
-            "屈膝捲腹(腹)": 0.08, "直腿捲腹(腹)": 0.08, "自行車捲腹(腹)": 0.08, "剪刀腿(腹)": 0.08
+            "屈膝捲腹(腹)": 0.08, "直腿捲腹(腹)": 0.08, "自行車捲腹(腹)": 0.08, "剪刀腿(腹)": 0.08, "跑步": 8, "散步": 3
         };
 
         window.onload = () => {
@@ -109,7 +122,17 @@
             renderCal(); updateTop();
         };
 
-        // --- 核心修復：運動列表更新不跳動 ---
+        // --- 核心邏輯：跑步與自訂運動 ---
+        function pickEx(name, isCustom = false) {
+            if(!name) return;
+            // 如果是跑步，單位改成「分鐘」，基礎熱量提高
+            const rate = name.includes("跑") ? 8 : (isCustom ? 0.08 : exLib[name]);
+            if(!exSelected[name]) exSelected[name] = { reps: 15, sets: 1, rate: rate, isTime: name.includes("跑") || name.includes("步") };
+            document.getElementById('exSearch').value = '';
+            document.getElementById('exSearchResults').classList.add('hidden');
+            renderExList();
+        }
+
         function renderExList() {
             const container = document.getElementById('exSelectedList');
             container.innerHTML = '';
@@ -117,56 +140,62 @@
                 const item = exSelected[name];
                 const cal = Math.round(item.reps * item.sets * item.rate);
                 container.innerHTML += `
-                <div class="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
-                    <div class="flex justify-between mb-2"><b>${name}</b><button onclick="removeEx('${name}')" class="text-red-300">✕</button></div>
+                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div class="flex justify-between mb-2"><b>${name}</b><button onclick="deleteEx('${name}')" class="text-red-300">✕</button></div>
                     <div class="flex justify-between items-center">
-                        <span class="text-blue-500 font-bold text-sm">消耗: <span id="cal-num-${name}">${cal}</span> kcal</span>
-                        <div class="flex items-center gap-3">
-                            <input type="number" value="${item.reps}" oninput="quickExUpdate('${name}', this.value)" class="w-16 p-2 bg-slate-50 rounded-lg text-center outline-none border">
-                            <div class="flex items-center gap-1">
-                                <button onclick="stepEx('${name}',-1)" class="btn-step">－</button>
-                                <span class="w-8 text-center font-bold" id="sets-num-${name}">${item.sets}</span>
-                                <button onclick="stepEx('${name}',1)" class="btn-step">＋</button>
-                            </div>
+                        <span class="text-blue-500 font-bold text-xs">預計消耗: <span id="cc-${name}">${cal}</span> kcal</span>
+                        <div class="flex items-center gap-2">
+                            <input type="number" value="${item.reps}" oninput="uEx('${name}', this.value)" class="w-16 p-2 bg-white rounded-lg text-center outline-none border">
+                            <span class="text-[10px] text-slate-400">${item.isTime ? '分' : '下'}</span>
+                            ${!item.isTime ? `<div class="flex items-center gap-1"><button onclick="sEx('${name}',-1)" class="btn-step">－</button><span class="w-6 text-center font-bold" id="ss-${name}">${item.sets}</span><button onclick="sEx('${name}',1)" class="btn-step">＋</button></div>` : ''}
                         </div>
                     </div>
                 </div>`;
             }
         }
+        function uEx(n, v) { exSelected[n].reps = parseInt(v) || 0; updateExCal(n); }
+        function sEx(n, v) { exSelected[n].sets = Math.max(1, exSelected[n].sets + v); document.getElementById(`ss-${n}`).innerText = exSelected[n].sets; updateExCal(n); }
+        function updateExCal(n) { const i = exSelected[n]; document.getElementById(`cc-${n}`).innerText = Math.round(i.reps * i.sets * i.rate); }
+        function deleteEx(n) { delete exSelected[n]; renderExList(); }
 
-        function quickExUpdate(name, val) {
-            exSelected[name].reps = parseInt(val) || 0;
-            const item = exSelected[name];
-            document.getElementById(`cal-num-${name}`).innerText = Math.round(item.reps * item.sets * item.rate);
+        // --- 趨勢分析與圓餅圖 ---
+        function showIntakePie() {
+            const data = JSON.parse(localStorage.getItem('h_' + activeD)) || {cal:0};
+            document.getElementById('trendModal').classList.remove('hidden');
+            document.getElementById('trendTitle').innerText = "今日攝取比例";
+            if(myChart) myChart.destroy();
+            myChart = new Chart(document.getElementById('chartCanvas').getContext('2d'), {
+                type: 'doughnut',
+                data: { labels: ['已攝取', '剩餘'], datasets: [{ data: [data.cal, Math.max(0, 1800-data.cal)], backgroundColor: ['#8fa3ad', '#f1f5f9'] }] }
+            });
         }
 
-        function stepEx(name, val) {
-            exSelected[name].sets = Math.max(1, exSelected[name].sets + val);
-            document.getElementById(`sets-num-${name}`).innerText = exSelected[name].sets;
-            const item = exSelected[name];
-            document.getElementById(`cal-num-${name}`).innerText = Math.round(item.reps * item.sets * item.rate);
+        function showTrend(type) {
+            document.getElementById('trendModal').classList.remove('hidden');
+            document.getElementById('trendTitle').innerText = type==='w' ? "體重波動趨勢" : "消耗趨勢";
+            const labels = [], values = [];
+            for (let i = 1; i <= 31; i++) {
+                const ds = `${currY}-${String(currM+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+                const d = JSON.parse(localStorage.getItem('h_' + ds)) || {};
+                labels.push(i); values.push(type==='w' ? (d.w1 || d.w2 || null) : (d.exT || null));
+            }
+            if(myChart) myChart.destroy();
+            myChart = new Chart(document.getElementById('chartCanvas').getContext('2d'), {
+                type: 'line',
+                data: { labels, datasets: [{ label: type==='w'?'kg':'kcal', data: values, borderColor: '#8fa3ad', tension: 0.3, spanGaps: true }] }
+            });
         }
+        function hideTrend() { document.getElementById('trendModal').classList.add('hidden'); }
 
-        // --- 飲食建議系統 ---
+        // --- 食物與通用邏輯 ---
         function refreshAdvice() {
             const eaten = foods.reduce((s,f) => s + f.c, 0);
             const box = document.getElementById('dynamicAdvice');
             const remain = 1800 - eaten;
-
-            if (remain > 800) {
-                box.innerHTML = "✅ 餘額充足：可以吃滷肉飯或三明治。建議補點蛋白質（蛋/豆漿）。";
-                box.style.background = "#e6f4ea"; box.style.color = "#1e8e3e";
-            } else if (remain > 0) {
-                box.innerHTML = "⚠️ 餘額遞減：建議吃青菜、雞胸肉。避開炸物與甜飲！";
-                box.style.background = "#fff4e5"; box.style.color = "#d97706";
-            } else {
-                box.innerHTML = "🚫 攝取超標：目前不建議再進食。可以多喝水，或增加一組啞鈴訓練！";
-                box.style.background = "#fce8e6"; box.style.color = "#d93025";
-            }
-            document.getElementById('adviceBanner').innerText = box.innerText;
+            if (remain > 800) { box.innerHTML = "✅ 餘額多：建議攝取雞胸肉、雞蛋。"; box.className = "advice-box bg-green-50 text-green-600"; }
+            else if (remain > 0) { box.innerHTML = "⚠️ 餘額遞減：建議多喝水，避開精緻澱粉。"; box.className = "advice-box bg-orange-50 text-orange-600"; }
+            else { box.innerHTML = "🚫 攝取爆表：不建議再進食，做點核心運動吧！"; box.className = "advice-box bg-red-50 text-red-600"; }
         }
-
-        // --- 通用功能 ---
         function searchEx(v) {
             const res = document.getElementById('exSearchResults');
             if(!v) { res.classList.add('hidden'); return; }
@@ -174,22 +203,13 @@
             res.innerHTML = matches.map(m => `<div onclick="pickEx('${m}')" class="p-4 border-b active:bg-slate-50">${m}</div>`).join('');
             res.classList.remove('hidden');
         }
-        function pickEx(name, isCustom = false) {
-            if(!name) return;
-            if(!exSelected[name]) exSelected[name] = { reps: 15, sets: 1, rate: isCustom ? 0.08 : exLib[name] };
-            document.getElementById('exSearch').value = '';
-            document.getElementById('exSearchResults').classList.add('hidden');
-            renderExList();
-        }
-        function removeEx(name) { delete exSelected[name]; renderExList(); }
         function addF() {
-            const n = document.getElementById('fIn').value || "食物";
-            const c = parseInt(document.getElementById('cIn').value) || 0;
+            const n = document.getElementById('fIn').value || "食物"; const c = parseInt(document.getElementById('cIn').value) || 0;
             foods.push({n, c}); updateFoodUI(); refreshAdvice();
             document.getElementById('fIn').value = ""; document.getElementById('cIn').value = "";
         }
         function updateFoodUI() {
-            document.getElementById('fList').innerHTML = foods.map((f, i) => `<div class="flex justify-between bg-slate-50 p-3 rounded-xl text-xs"><span>${f.n} <b>${f.c}</b></span><button onclick="foods.splice(${i},1);updateFoodUI();refreshAdvice()" class="text-slate-300">刪除</button></div>`).join('');
+            document.getElementById('fList').innerHTML = foods.map((f, i) => `<div class="flex justify-between bg-slate-50 p-3 rounded-xl text-xs"><span>${f.n} <b>${f.c}</b></span><button onclick="foods.splice(${i},1);updateFoodUI();refreshAdvice()" class="text-slate-300">✕</button></div>`).join('');
         }
         function debounceFood(v) {
             const b = document.getElementById('estBox'); b.innerHTML = '';
@@ -198,7 +218,7 @@
             });
         }
         function saveAll() {
-            let exT = 0; for(let n in exSelected) { const item = exSelected[n]; exT += Math.round(item.reps * item.sets * item.rate); }
+            let exT = 0; for(let n in exSelected) { const i = exSelected[n]; exT += Math.round(i.reps * i.sets * i.rate); }
             localStorage.setItem('h_' + activeD, JSON.stringify({ 
                 cal: foods.reduce((s,f)=>s+f.c, 0), foods, exT, exSelected, 
                 water: document.getElementById('waterIn').value,
@@ -209,11 +229,10 @@
         function updateTop() {
             const today = new Date().toISOString().split('T')[0];
             const data = JSON.parse(localStorage.getItem('h_' + today)) || {cal:0, exT:0};
-            document.getElementById('topIn').innerText = data.cal;
-            document.getElementById('topEx').innerText = data.exT;
+            document.getElementById('topIn').innerText = data.cal + " kcal";
+            document.getElementById('topEx').innerText = data.exT + " kcal";
             document.getElementById('topW').innerText = (data.w1 || data.w2 || "--") + " kg";
             document.getElementById('topDate').innerText = new Date().toLocaleDateString('zh-TW', {month:'long', day:'numeric'});
-            foods = data.foods || []; refreshAdvice();
         }
         function renderCal() {
             const body = document.getElementById('calendarBody'); body.innerHTML = '';
@@ -222,13 +241,15 @@
             const today = new Date().toISOString().split('T')[0];
             for (let i = 0; i < first; i++) body.innerHTML += `<div></div>`;
             for (let d = 1; d <= days; d++) {
-                const ds = `${currY}-${String(currM + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const ds = `${currY}-${String(currM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                 const data = JSON.parse(localStorage.getItem('h_' + ds)) || {};
-                body.innerHTML += `<div class="day-cell p-2 ${ds === today ? 'today-mark' : ''}" onclick="openModal('${ds}')">
-                    <span class="text-xs opacity-30 font-bold">${d}</span>
-                    <div class="text-[9px] font-black text-slate-500 mt-1">${data.cal || ''}</div>
-                    <div class="text-[8px] font-bold text-slate-300">${data.w2 || data.w1 || ''}</div>
-                    ${data.exT ? '<div style="width:5px;height:5px;background:#8fa3ad;border-radius:50%;position:absolute;top:5px;right:5px;"></div>' : ''}
+                body.innerHTML += `<div class="day-cell ${ds === today ? 'today-mark' : ''}" onclick="openModal('${ds}')">
+                    <span class="text-[10px] opacity-30 font-bold">${d}</span>
+                    <div class="flex-1 flex flex-col justify-end">
+                        <div class="data-label text-orange-500">${data.cal ? '🔥'+data.cal : ''}</div>
+                        <div class="data-label text-blue-500">${data.exT ? '🏃'+data.exT : ''}</div>
+                        <div class="data-label text-slate-500 font-black">${data.w1 || data.w2 || ''}</div>
+                    </div>
                 </div>`;
             }
         }
